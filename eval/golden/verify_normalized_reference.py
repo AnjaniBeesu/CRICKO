@@ -57,7 +57,7 @@ def calculate(rows: list[dict], pid: str, metric: str, season: str|None, competi
             legal_delivery=r["legal_delivery"], batter_id=r["batter_id"],
             bowler_id=r["bowler_id"], batter_runs=r["batter_runs"],
             total_runs=r["total_runs"], bowler_runs=r["total_runs"] - r["bye_runs"] - r["legbye_runs"] - r["penalty_runs"],
-            batter_faced=r["batter_faced"], batter_dismissed=(r["dismissed_player_id"] is not None),
+            batter_faced=r["batter_faced"], batter_dismissed=(r["dismissed_player_id"] is not None and r["dismissal_kind"] != "retired hurt"),
             bowler_credited_wicket=(r["dismissal_kind"] is not None and r["dismissal_kind"] not in {"run out","retired hurt","retired out","obstructing the field"}),
             dismissal_kind=r["dismissal_kind"])
         balls.append(b); match_ids.add(r["match_id"])
