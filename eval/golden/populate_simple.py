@@ -4,6 +4,8 @@ import argparse, json, re, zipfile
 from collections import defaultdict
 from pathlib import Path
 
+DEFERRED_CASES={"A005","A009"}
+
 PLAYER_ALIASES = {
     "Virat Kohli": ["V Kohli", "Virat Kohli"],
     "Jasprit Bumrah": ["JJ Bumrah", "J Bumrah", "Jasprit Bumrah"],
@@ -179,6 +181,10 @@ def main():
     player_map={}
     for x in rows:
         if x["block"]!="A": continue
+        if x["id"] in DEFERRED_CASES:
+            x["expected_result"]={"status":"PENDING_VERIFICATION","values":{},"tolerance":{}}
+            x["notes"]="Deferred: requires a fielding-aware match-count path or manual source reconciliation before release."
+            continue
         x["expected_result"]={"status":"PENDING_VERIFICATION","values":{},"tolerance":{}}
         x["data_snapshot_id"]="cricsheet-mvp-t20-2026-10-08"
         comp="IPL" if "IPL" in x["question"] else "T20I"
