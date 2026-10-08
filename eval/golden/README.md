@@ -1,0 +1,60 @@
+# CRICKO Golden Evaluation Set — 200 Cases
+
+This directory defines the first 200-case deterministic evaluation contract for CRICKO. Numerical answers are intentionally PENDING until a pinned data snapshot and independent reference implementations exist.
+
+## Blocks
+
+| Block | Count | Purpose |
+|---|---:|---|
+| A | 20 | Simple lookups |
+| B | 35 | Filtered leaderboards |
+| C | 25 | Matchups / H2H |
+| D | 25 | Context-matched comparisons |
+| E | 20 | Match-level / scorecard-missed |
+| F | 15 | Trends / rolling form |
+| G | 20 | Entity ambiguity |
+| H | 20 | Bad premise / unanswerable |
+| I | 10 | Multi-turn follow-ups |
+| J | 10 | Adversarial / hallucination traps |
+
+## Rules
+
+1. Pin every evaluation to a dataset snapshot.
+2. Never generate golden numbers from the same implementation being tested.
+3. Use Statsguru/manual checks where applicable, a separate pandas implementation, and hand-verified matches for match-level cases.
+4. The LLM never computes cricket statistics. It receives deterministic evidence and explains it.
+5. `expected_result.status = PENDING_VERIFICATION` means the case is a specification, not a fabricated answer.
+6. MVP is T20 only: IPL and international T20s. ODI/Test cases are refusal/correction tests.
+7. Thin samples must expose sample size and follow the locked minimum-sample policy.
+8. Every explanation number must be traceable to its evidence payload.
+
+## Evaluation levels
+
+- **L1 Parse:** generated canonical query plan matches the expected plan.
+- **L2 Data:** deterministic values match the golden result within tolerance.
+- **L3 Behavior:** answer / clarify / refuse / correct is correct.
+- **L4 Faithfulness:** every number in the explanation exists in evidence; no unsupported claims.
+- **L5 Visual:** expected chart/card type is selected and correctly bound.
+
+## Release gates
+
+- L2 ≥ 95% on A-D and F.
+- L3 = 100% on hallucination traps; ≥ 90% overall on G/H/J.
+- L4 unsupported numbers = 0.
+- No regression of previously passing cases.
+- Track wrongly-confident rate separately.
+
+## Required methodology decisions before populating golden values
+
+- Powerplay = overs 1-6; middle = 7-15; death = 16-20.
+- Decide how shortened innings map to phases.
+- Bowler runs exclude byes/leg-byes; include wides/no-balls.
+- Legal balls exclude wides/no-balls.
+- Bowler dismissals exclude run-outs, retired dismissals and obstructing-the-field.
+- Undefined averages remain undefined when denominator is zero.
+- Default minimum samples must be explicitly documented.
+- `Since 2022` begins 2022-01-01.
+- Super overs, DLS and abandoned matches are excluded by default and flagged.
+- Resolve franchise renames to stable franchise IDs.
+- Resolve players to stable IDs, never raw names.
+- Document batter-hand and bowler-style sources and missing-value behavior.
