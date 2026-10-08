@@ -51,6 +51,13 @@ def extract_player(question):
     patterns=[
         r"How many runs has (.+?) scored",
         r"How many wickets has (.+?) taken",
+        r"How many .* wickets has (.+?) taken",
+        r"How many .* runs has (.+?) scored",
+        r"How many .* matches has (.+?) played",
+        r"How many .* sixes has (.+?) hit",
+        r"How many .* fours has (.+?) hit",
+        r"How many .* centuries has (.+?) scored",
+        r"How many .* fifties has (.+?) scored",
         r"What is (.+?)'s",
         r"How many sixes has (.+?) hit",
         r"How many matches has (.+?) played",
