@@ -1,0 +1,36 @@
+name: Frontend build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "app/**"
+      - "package.json"
+      - "next.config.ts"
+      - "tsconfig.json"
+      - ".github/workflows/frontend-build.yml"
+  pull_request:
+    paths:
+      - "app/**"
+      - "package.json"
+      - "next.config.ts"
+      - "tsconfig.json"
+      - ".github/workflows/frontend-build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm install
+
+      - run: npm run build
