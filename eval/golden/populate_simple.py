@@ -92,7 +92,10 @@ def aggregate(zips, target_name):
             info=payload["info"]
             if not match_allowed(info): continue
             people=info.get("registry",{}).get("people",{})
-            pid=resolve_player(target_name, people)
+            try:
+                pid=resolve_player(target_name, people)
+            except ValueError:
+                continue
             target_ids.add(pid)
             names_by_team=info.get("players",{})
             if any(target_name.lower() in n.lower() for team in names_by_team.values() for n in team):
