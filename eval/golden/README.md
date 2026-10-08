@@ -1,6 +1,6 @@
 # CRICKO Golden Evaluation Set — 200 Cases
 
-This directory defines the first 200-case deterministic evaluation contract for CRICKO. Numerical answers are populated only when an independent source-level calculation can be reproduced against the pinned snapshot. As of 2026-10-08, 18 of the 20 simple lookup cases have deterministic values; the remaining cases are intentionally pending because the MVP snapshot does not contain the player's post-2022 appearances.
+This directory defines the first 200-case deterministic evaluation contract for CRICKO. Numerical answers are populated only when an independent source-level calculation can be reproduced against the pinned snapshot. As of 2026-10-08, 16 of the 20 simple lookup cases have deterministic values; four remain pending: two have no MVP-scope appearances, one requires fielding-aware match counting, and one requires manual source reconciliation of a batting-average discrepancy.
 
 ## Blocks
 
