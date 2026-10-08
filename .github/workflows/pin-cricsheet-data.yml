@@ -1,13 +1,13 @@
 name: Pin Cricsheet data
 
-on: [push]
+on:
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   pin:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -35,5 +35,9 @@ jobs:
           git config user.name "cricko-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/snapshots/cricsheet/ipl_json.zip data/snapshots/cricsheet/t20s_male_json.zip data/snapshots/mvp-t20.json
+          if git diff --cached --quiet; then
+            echo "Snapshot already current."
+            exit 0
+          fi
           git commit -m "data: pin Cricsheet MVP T20 source snapshot"
           git push
