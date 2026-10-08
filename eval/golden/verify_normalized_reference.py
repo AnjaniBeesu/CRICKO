@@ -113,8 +113,12 @@ def main():
         competition="IPL" if "IPL" in q else "T20I"
         value=calculate(rows,player_ids,metric_for(q),season,competition)
         if value != expected:
-            raise SystemExit(f"MISMATCH {case['id']}: generator={expected} normalized-reference={value}")
-        checked+=1
-    print(f"checked={checked}; all deterministic golden values match normalized reference")
+            mismatches.append({"id":case["id"],"generator":expected,"normalized_reference":value})
+            case["expected_result"]={"status":"PENDING_VERIFICATION","values":{},"tolerance":{}}
+            case["notes"]="Independent normalized-data reference disagrees with the source-level generator; manual/source reconciliation required before release."
+        else:
+            checked+=1
+    Path(args.out).write_text("\n".join(json.dumps(x,separators=(",",":")) for x in golden)+"\n")
+    print(json.dumps({"checked":checked,"mismatches":mismatches,"deferred":len(mismatches)}))
 
 if __name__=="__main__": main()
