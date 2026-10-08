@@ -30,7 +30,7 @@ The pinned source snapshot covers men's IPL and men's T20 internationals, with t
 
 Derived metrics follow the locked definitions in [the methodology](docs/methodology.md). Matches with revised targets, no-results, or Super Over/bowl-out deciders are excluded from the deterministic MVP dataset.
 
-Cricsheet is an upstream source and is not globally complete; CRICKO records the exact snapshot and hashes rather than implying complete world coverage.
+Cricsheet is an upstream source and is not globally complete; CRICKO records the exact snapshot and hashes rather than implying complete world coverage. The current pinned snapshot validates to **2,607 accepted MVP matches and 599,796 normalized deliveries** (356 IPL + 2,251 men's T20I). Five matches are explicitly held out because the current one-dismissal reference contract cannot safely represent multiple wickets on a single delivery; this is tracked rather than silently repaired.
 
 ## Planned intelligence layer
 
