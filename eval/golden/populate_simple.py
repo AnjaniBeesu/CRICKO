@@ -52,8 +52,9 @@ def resolve_player(name, registry_names):
         raise ValueError(f"ambiguous explicit player alias: {name}: {candidates}")
     raise ValueError(f"unresolved explicit player alias: {name}")
 
-def match_allowed(info):
+def match_allowed(info, season=None):
     if info.get("gender")!="male": return False
+    if season is not None and str(info.get("season")) != str(season): return False
     if info.get("match_type") not in {"T20","IT20"}: return False
     dates=info.get("dates",[])
     if not dates or str(dates[0])[:4] < "2022": return False
@@ -116,7 +117,7 @@ def metric(question):
     if "runs" in q: return "runs"
     raise ValueError(question)
 
-def aggregate(zips, target_name):
+def aggregate(zips, target_name, season=None):
     bat=defaultdict(lambda: {"runs":0,"balls":0,"fours":0,"sixes":0,"dismissals":0,"innings":0,"scores":[]})
     bowl=defaultdict(lambda: {"runs":0,"balls":0,"wickets":0})
     matches=set()
@@ -126,7 +127,7 @@ def aggregate(zips, target_name):
     for zpath in zips:
         for fn,payload in rows_from_zip(zpath):
             info=payload["info"]
-            if not match_allowed(info): continue
+            if not match_allowed(info, season): continue
             people=info.get("registry",{}).get("people",{})
             try:
                 pid=resolve_player(target_name, people)
@@ -178,7 +179,9 @@ def main():
         comp="IPL" if "IPL" in x["question"] else "T20I"
         player=extract_player(x["question"])
         m=metric(x["question"])
-        bat,bowl,matches,non_boundary=aggregate(zips[comp],player)
+        season_match=re.search(r"\\b(20\\d{2})\\b", x["question"])
+        season=season_match.group(1) if season_match else None
+        bat,bowl,matches,non_boundary=aggregate(zips[comp],player,season)
         # Resolve the target ID again from the populated maps.
         ids=set(bat)|set(bowl)
         if not ids: continue
