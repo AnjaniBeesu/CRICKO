@@ -7,6 +7,7 @@ from pathlib import Path
 PLAYER_ALIASES = {
     "Virat Kohli": ["V Kohli", "Virat Kohli"],
     "Jasprit Bumrah": ["JJ Bumrah", "J Bumrah", "Jasprit Bumrah"],
+    "Bumrah": ["JJ Bumrah", "J Bumrah", "Jasprit Bumrah"],
     "Rohit Sharma": ["RG Sharma", "R Sharma", "Rohit Sharma"],
     "AB de Villiers": ["AB de Villiers", "AB Villiers"],
     "MS Dhoni": ["MS Dhoni", "MSD"],
@@ -177,6 +178,8 @@ def main():
     player_map={}
     for x in rows:
         if x["block"]!="A": continue
+        x["expected_result"]={"status":"PENDING_VERIFICATION","values":{},"tolerance":{}}
+        x["data_snapshot_id"]="cricsheet-mvp-t20-2026-10-08"
         comp="IPL" if "IPL" in x["question"] else "T20I"
         player=extract_player(x["question"])
         m=metric(x["question"])
