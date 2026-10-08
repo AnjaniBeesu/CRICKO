@@ -215,6 +215,8 @@ def main():
     Path(args.out).write_text("\n".join(json.dumps(x,separators=(",",":")) for x in rows)+"\n")
     if args.player_map_out:
         Path(args.player_map_out).write_text(json.dumps(player_map, indent=2) + "\n")
-    if args.player_map_out:\n        Path(args.player_map_out).write_text(json.dumps(player_map, indent=2) + "\\n")\n    print(f"populated={done}")
+    if args.player_map_out:
+        Path(args.player_map_out).write_text(json.dumps(player_map, indent=2) + "\n")
+    print(f"populated={done}")
 
 if __name__=="__main__": main()
