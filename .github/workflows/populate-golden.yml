@@ -1,4 +1,4 @@
-name: Populate deterministic golden answers # canonical-player cross-check
+name: Populate deterministic golden answers # canonical-player IDs
 
 on:
   push:
