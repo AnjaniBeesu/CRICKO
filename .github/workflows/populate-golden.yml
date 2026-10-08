@@ -1,4 +1,4 @@
-name: Populate deterministic golden answers # scope-correct normalized check
+name: Populate deterministic golden answers # defer fielding-only match count
 
 on:
   push:
