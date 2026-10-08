@@ -1,4 +1,4 @@
-name: Populate deterministic golden answers # reproducible two-path verification
+name: Populate deterministic golden answers # two-path verification retry
 
 on:
   push:
