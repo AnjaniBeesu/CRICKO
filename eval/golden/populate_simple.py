@@ -153,7 +153,7 @@ def aggregate(zips, target_name, season=None):
                             if br==6: bat[pid]["sixes"]+=1
                             if runs.get("non_boundary"): non_boundary=True
                             for w in d.get("wickets",[]):
-                                if people.get(w["player_out"])==pid and w["kind"] not in EXCLUDED_DISMISSALS:
+                                if people.get(w["player_out"])==pid and w["kind"] != "retired hurt":
                                     bat[pid]["dismissals"]+=1
                             innings_scores.setdefault(pid,0); innings_scores[pid]+=br
                         if wid==pid:
