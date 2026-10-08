@@ -1,4 +1,4 @@
-name: Populate deterministic golden answers # reset-before-recompute
+name: Populate deterministic golden answers # lock batting-average semantics
 
 on:
   push:
