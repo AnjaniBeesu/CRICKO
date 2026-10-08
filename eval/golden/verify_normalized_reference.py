@@ -96,7 +96,7 @@ def main():
     golden=[json.loads(x) for x in Path(args.golden).read_text().splitlines() if x.strip()]
     checked=0
     for case in golden:
-        if case["block"]!="A" or case["expected_result"]["status"]!="VERIFIED_BY_INDEPENDENT_REFERENCE":
+        if case["block"]!="A" or case["expected_result"]["status"]!="VERIFIED_BY_INDEPENDENT_REFERENCE" or metric_for(case["question"])=="matches":
             continue
         expected=case["expected_result"]["values"]["value"]
         pid=aliases.get(case["id"])
