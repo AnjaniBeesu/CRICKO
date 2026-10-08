@@ -58,3 +58,6 @@ This directory defines the first 200-case deterministic evaluation contract for 
 - Resolve franchise renames to stable franchise IDs.
 - Resolve players to stable IDs, never raw names.
 - Document batter-hand and bowler-style sources and missing-value behavior.
+## Methodology
+
+The locked analytics contract is maintained in [`docs/methodology.md`](../../docs/methodology.md). The reference implementation lives in [`eval/reference`](../reference/README.md). Golden numerical values remain pending until `data/snapshots/mvp-t20.json` is replaced with an immutable, hashed snapshot.
