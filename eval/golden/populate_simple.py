@@ -135,6 +135,7 @@ def aggregate(zips, target_name, season=None):
             except ValueError:
                 continue
             target_ids.add(pid)
+            target_key=target_name
             names_by_team=info.get("players",{})
             if any(target_name.lower() in n.lower() for team in names_by_team.values() for n in team):
                 matches.add(fn)
@@ -147,23 +148,23 @@ def aggregate(zips, target_name, season=None):
                         runs=d["runs"]; br=runs["batter"]; total=runs["total"]
                         legal=not any(k in d.get("extras",{}) for k in ("wides","noballs"))
                         if bid==pid:
-                            matches.add(fn); bat[pid]["runs"]+=br
-                            if legal: bat[pid]["balls"]+=1
-                            if br==4: bat[pid]["fours"]+=1
-                            if br==6: bat[pid]["sixes"]+=1
+                            matches.add(fn); bat[target_key]["runs"]+=br
+                            if legal: bat[target_key]["balls"]+=1
+                            if br==4: bat[target_key]["fours"]+=1
+                            if br==6: bat[target_key]["sixes"]+=1
                             if runs.get("non_boundary"): non_boundary=True
                             for w in d.get("wickets",[]):
                                 if people.get(w["player_out"])==pid and w["kind"] != "retired hurt":
-                                    bat[pid]["dismissals"]+=1
-                            innings_scores.setdefault(pid,0); innings_scores[pid]+=br
+                                    bat[target_key]["dismissals"]+=1
+                            innings_scores.setdefault(target_key,0); innings_scores[target_key]+=br
                         if wid==pid:
                             matches.add(fn)
-                            if legal: bowl[pid]["balls"]+=1
+                            if legal: bowl[target_key]["balls"]+=1
                             extras=d.get("extras",{})
                             conceded=total-extras.get("byes",0)-extras.get("legbyes",0)-extras.get("penalty",0)
-                            bowl[pid]["runs"]+=conceded
+                            bowl[target_key]["runs"]+=conceded
                             for w in d.get("wickets",[]):
-                                if w["kind"] not in EXCLUDED_DISMISSALS: bowl[pid]["wickets"]+=1
+                                if w["kind"] not in EXCLUDED_DISMISSALS: bowl[target_key]["wickets"]+=1
             for pid2,score in innings_scores.items():
                 bat[pid2]["innings"]+=1; bat[pid2]["scores"].append(score)
     return bat,bowl,len(matches),non_boundary
@@ -187,9 +188,8 @@ def main():
         season=season_match.group(1) if season_match else None
         bat,bowl,matches,non_boundary=aggregate(zips[comp],player,season)
         # Resolve the target ID again from the populated maps.
-        ids=set(bat)|set(bowl)
-        if not ids: continue
-        pid=next(iter(ids))
+        pid=player
+        if pid not in bat and pid not in bowl: continue
         player_map[x["id"]]=pid
         b=bat[pid]; w=bowl[pid]
         if m=="runs": value=b["runs"]
