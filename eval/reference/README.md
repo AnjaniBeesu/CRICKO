@@ -33,3 +33,11 @@ The production ingestion layer is responsible for mapping a source dataset into 
 7. Run the evaluation harness before release.
 
 Do not import production query-engine code into this package. Independence is the point.
+
+## Cricsheet adapter
+
+Cricsheet's official JSON format is normalized by `cricsheet_json.py`, then checked by `validate.py`. `ingest.py` accepts a downloaded JSON ZIP and emits deterministic JSONL for the MVP scope (men's T20/IT20, IPL + international, from 2022 onward).
+
+The current Cricsheet JSON format is 1.3.0. The upstream format documents stable player identifiers through the registry; team identity is kept as a separate mapping concern because the match JSON registry does not provide team IDs. citeturn1view0
+
+The current download page lists an IPL JSON archive and reports 1,243 IPL matches; it also notes that some matches are withheld. These upstream counts are informational only until a local archive is hashed and pinned. citeturn2view0
