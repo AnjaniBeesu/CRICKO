@@ -1,0 +1,135 @@
+name: Pin Cricsheet MVP T20 snapshot
+
+on:
+  push:
+    paths:
+      - ".github/workflows/pin-cricsheet.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 1
+
+      - name: Install Git LFS
+        run: |
+          git lfs install
+          git lfs version
+
+      - name: Verify reference suite
+        run: python -m pytest eval/reference -q
+
+      - name: Download official Cricsheet archives
+        run: |
+          set -euo pipefail
+          mkdir -p data/snapshots/cricsheet
+          curl --fail --location --retry 5 --retry-delay 2 \
+            https://cricsheet.org/downloads/ipl_json.zip \
+            --output data/snapshots/cricsheet/ipl_json.zip
+          curl --fail --location --retry 5 --retry-delay 2 \
+            https://cricsheet.org/downloads/t20s_male_json.zip \
+            --output data/snapshots/cricsheet/t20s_male_json.zip
+          git lfs track "data/snapshots/cricsheet/*.zip"
+
+      - name: Validate archives and write immutable manifest
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json, os, zipfile
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          root = Path("data/snapshots/cricsheet")
+          specs = [
+              ("ipl_json.zip", "https://cricsheet.org/downloads/ipl_json.zip", "IPL"),
+              ("t20s_male_json.zip", "https://cricsheet.org/downloads/t20s_male_json.zip", "T20 internationals"),
+          ]
+
+          def sha256(path):
+              h = hashlib.sha256()
+              with path.open("rb") as f:
+                  for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          artifacts = []
+          versions = set()
+          for filename, url, label in specs:
+              path = root / filename
+              with zipfile.ZipFile(path) as z:
+                  names = [n for n in z.namelist() if n.endswith(".json")]
+                  if not names:
+                      raise SystemExit(f"{filename}: no JSON match files found")
+                  for name in names:
+                      with z.open(name) as fh:
+                          obj = json.load(fh)
+                      version = obj.get("meta", {}).get("data_version")
+                      if version:
+                          versions.add(str(version))
+                  bad = z.testzip()
+                  if bad:
+                      raise SystemExit(f"{filename}: corrupt member {bad}")
+              artifacts.append({
+                  "name": filename,
+                  "source_url": url,
+                  "coverage_label": label,
+                  "sha256": sha256(path),
+                  "size_bytes": path.stat().st_size,
+                  "source_match_files": len(names),
+              })
+
+          if len(versions) != 1:
+              raise SystemExit(f"Unexpected Cricsheet data versions: {sorted(versions)}")
+          retrieved_at = datetime.now(timezone.utc).date().isoformat()
+          snapshot_id = f"cricsheet-mvp-t20-{retrieved_at}"
+
+          manifest = {
+              "snapshot_id": snapshot_id,
+              "status": "PINNED",
+              "source": "Cricsheet",
+              "source_format": "JSON",
+              "source_version": sorted(versions)[0],
+              "source_license": "Open Data Commons Attribution License",
+              "source_download_page": "https://cricsheet.org/downloads/",
+              "retrieved_at": retrieved_at,
+              "coverage": {
+                  "gender": "men",
+                  "match_types": ["T20", "T20I"],
+                  "competitions": ["Indian Premier League", "international T20"],
+                  "scope_start": "2022-01-01",
+                  "note": "Archives are pinned upstream source inputs; production ingestion applies the MVP filters and exclusions."
+              },
+              "artifacts": artifacts,
+              "notes": [
+                  "Source archives are stored with Git LFS; their SHA-256 hashes pin the exact bytes used.",
+                  "Do not replace an archive in-place without creating a new snapshot_id.",
+                  "Numerical golden answers must be generated from this exact snapshot after independent verification.",
+                  "Cricsheet currently withholds some matches; coverage must not be described as globally complete."
+              ]
+          }
+          Path("data/snapshots/mvp-t20.json").write_text(
+              json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+          )
+          print(json.dumps(manifest, indent=2))
+          PY
+
+      - name: Commit pinned snapshot
+        run: |
+          set -euo pipefail
+          git config user.name "cricko-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .gitattributes data/snapshots/cricsheet/ipl_json.zip data/snapshots/cricsheet/t20s_male_json.zip data/snapshots/mvp-t20.json
+          if git diff --cached --quiet; then
+            echo "No snapshot changes to commit."
+            exit 0
+          fi
+          git commit -m "data: pin Cricsheet MVP T20 snapshot"
+          git push
