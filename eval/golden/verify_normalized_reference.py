@@ -86,6 +86,7 @@ def main():
     ap.add_argument("--golden",required=True)
     ap.add_argument("--normalized",action="append",required=True)
     ap.add_argument("--player-map",required=True)
+    ap.add_argument("--out",required=True)
     args=ap.parse_args()
     aliases=load_aliases(args.player_map)
     rows=[]
@@ -95,6 +96,7 @@ def main():
     for r in rows: by_comp[r["competition"]].append(r)
     golden=[json.loads(x) for x in Path(args.golden).read_text().splitlines() if x.strip()]
     checked=0
+    mismatches=[]
     for case in golden:
         if case["block"]!="A" or case["expected_result"]["status"]!="VERIFIED_BY_INDEPENDENT_REFERENCE" or metric_for(case["question"])=="matches":
             continue
