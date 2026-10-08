@@ -24,7 +24,7 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def inspect_archive(path: Path) -> tuple[str, int]:
+def inspect_archive(path: Path) -> tuple[set[str], int]:
     versions: set[str] = set()
     with zipfile.ZipFile(path) as archive:
         names = [name for name in archive.namelist() if name.endswith(".json")]
@@ -61,7 +61,7 @@ def main() -> int:
                 "coverage_label": label,
                 "sha256": sha256(path),
                 "size_bytes": path.stat().st_size,
-                "source_match_files": match_count,
+                "source_match_files": match_count,\n                "source_versions": sorted(archive_versions),
             }
         )
 
@@ -74,7 +74,7 @@ def main() -> int:
         "status": "PINNED",
         "source": "Cricsheet",
         "source_format": "JSON",
-        "source_version": next(iter(versions)),
+        "source_versions": sorted(versions),
         "source_license": "Open Data Commons Attribution License",
         "source_download_page": "https://cricsheet.org/downloads/",
         "retrieved_at": retrieved_at,
