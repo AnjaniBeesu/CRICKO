@@ -78,6 +78,7 @@ def test_normalizes_legal_delivery_and_runs():
     assert rows[0].bowler_id == "cccccccc"
     assert rows[0].team_batting_id == "team:india"
     assert rows[0].team_bowling_id == "team:australia"
+    assert rows[0].over == 1
     assert rows[0].to_ball().bowler_runs == 4
     assert rows[0].to_ball().batter_faced is True
 
