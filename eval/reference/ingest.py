@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from .cricsheet_json import normalize_match
+from .team_identity import UnknownTeamError
 from .validate import validate_rows
 
 
@@ -64,6 +65,7 @@ def build_snapshot(source_zip: str, output_jsonl: str) -> dict[str, Any]:
     matches = 0
     deliveries = 0
     excluded: list[dict[str, str]] = []
+    unknown_teams: set[str] = set()
 
     with zipfile.ZipFile(source) as archive, output.open("w", encoding="utf-8") as out:
         for name in sorted(archive.namelist()):
@@ -79,7 +81,13 @@ def build_snapshot(source_zip: str, output_jsonl: str) -> dict[str, Any]:
                 excluded.append({"match_id": match_id, "reason": reason})
                 continue
 
-            rows = normalize_match(payload, match_id)
+            try:
+                rows = normalize_match(payload, match_id)
+            except UnknownTeamError as exc:
+                excluded.append({"match_id": match_id, "reason": "unknown_team", "detail": str(exc)})
+                unknown_teams.add(str(exc).split("unknown team name: ", 1)[-1].split(";", 1)[0].strip("'\""))
+                continue
+
             validate_rows(rows)
             for row in rows:
                 out.write(json.dumps(row.__dict__, sort_keys=True) + "\n")
@@ -95,6 +103,7 @@ def build_snapshot(source_zip: str, output_jsonl: str) -> dict[str, Any]:
         "matches": matches,
         "deliveries": deliveries,
         "excluded_matches": excluded,
+        "unknown_teams": sorted(unknown_teams),
     }
 
 
