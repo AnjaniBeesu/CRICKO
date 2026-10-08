@@ -29,7 +29,22 @@ jobs:
             --golden eval/golden/cricko-golden-200.jsonl \
             --ipl data/snapshots/cricsheet/ipl_json.zip \
             --t20i data/snapshots/cricsheet/t20s_male_json.zip \
-            --out /tmp/cricko-golden-200.jsonl
+            --out /tmp/cricko-golden-200.jsonl \
+            --player-map-out /tmp/player-map.json
+
+      - name: Build normalized reference datasets
+        run: |
+          mkdir -p /tmp/normalized
+          python -m eval.reference.ingest data/snapshots/cricsheet/ipl_json.zip /tmp/normalized/ipl.jsonl
+          python -m eval.reference.ingest data/snapshots/cricsheet/t20s_male_json.zip /tmp/normalized/t20i.jsonl
+
+      - name: Verify against normalized Ball reference
+        run: |
+          python eval/golden/verify_normalized_reference.py \
+            --golden /tmp/cricko-golden-200.jsonl \
+            --normalized /tmp/normalized/ipl.jsonl \
+            --normalized /tmp/normalized/t20i.jsonl \
+            --player-map /tmp/player-map.json
 
       - name: Replace golden file when values were computed
         run: |
