@@ -54,7 +54,7 @@ def calculate(rows: list[dict], pid: str, metric: str, season: str|None):
             match_id=r["match_id"], innings=r["innings"], over=r["over"],
             legal_delivery=r["legal_delivery"], batter_id=r["batter_id"],
             bowler_id=r["bowler_id"], batter_runs=r["batter_runs"],
-            total_runs=r["total_runs"], bowler_runs=r["bowler_runs"],
+            total_runs=r["total_runs"], bowler_runs=r["total_runs"] - r["bye_runs"] - r["legbye_runs"] - r["penalty_runs"],
             batter_faced=r["batter_faced"], batter_dismissed=r["batter_dismissed"],
             bowler_credited_wicket=r["bowler_credited_wicket"],
             dismissal_kind=r["dismissal_kind"])
