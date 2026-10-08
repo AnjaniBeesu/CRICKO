@@ -166,7 +166,7 @@ def normalize_match(
                         team_bowling_id=team_ids[bowling_team],
                         innings=innings_number,
                         scheduled_overs=scheduled_overs,
-                        over=over_number,
+                        over=over_number + 1,
                         delivery=delivery_index,
                         actual_delivery=str(raw["actual_delivery"]),
                         batter_id=_id(registry, raw["batter"]),
