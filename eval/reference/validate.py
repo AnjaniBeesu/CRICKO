@@ -19,9 +19,9 @@ def validate_rows(rows: Iterable[NormalizedDelivery]) -> None:
             raise ValueError(f"duplicate delivery identifier: {key}")
         seen.add(key)
 
-        if row.over < 0 or row.delivery < 1:
+        if row.over < 1 or row.delivery < 1:
             raise ValueError(f"invalid over/delivery: {key}")
-        if row.over >= row.scheduled_overs:
+        if row.over > row.scheduled_overs:
             raise ValueError(f"over exceeds scheduled innings: {key}")
         if not row.actual_delivery:
             raise ValueError(f"missing actual_delivery: {key}")
