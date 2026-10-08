@@ -4,6 +4,23 @@ import argparse, json, re, zipfile
 from collections import defaultdict
 from pathlib import Path
 
+PLAYER_ALIASES = {
+    "Virat Kohli": ["V Kohli", "Virat Kohli"],
+    "Jasprit Bumrah": ["JJ Bumrah", "J Bumrah", "Jasprit Bumrah"],
+    "Rohit Sharma": ["RG Sharma", "R Sharma", "Rohit Sharma"],
+    "AB de Villiers": ["AB de Villiers", "AB Villiers"],
+    "MS Dhoni": ["MS Dhoni", "MSD"],
+    "Suryakumar Yadav": ["SA Yadav", "S Yadav", "Suryakumar Yadav"],
+    "Rashid Khan": ["Rashid Khan"],
+    "Hardik Pandya": ["HH Pandya", "H Pandya", "Hardik Pandya"],
+    "Shubman Gill": ["Shubman Gill", "Shubman"],
+    "Arshdeep Singh": ["Arshdeep Singh"],
+    "Babar Azam": ["Babar Azam"],
+    "Kuldeep Yadav": ["Kuldeep Yadav", "Kuldeep"],
+    "Chris Gayle": ["CH Gayle", "Chris Gayle"],
+    "Yuzvendra Chahal": ["YS Chahal", "Y Chahal", "Yuzvendra Chahal"],
+}
+
 EXCLUDED_DISMISSALS={"run out","retired hurt","retired out","obstructing the field","retired_hurt","retired_out","obstructing_the_field"}
 
 def norm(s: str) -> str:
@@ -21,11 +38,19 @@ def player_score(query: str, name: str) -> int:
     return score
 
 def resolve_player(name, registry_names):
-    scored=sorted(((player_score(name,n),n,pid) for n,pid in registry_names.items()), reverse=True)
-    if not scored or scored[0][0] < 50: raise ValueError(f"cannot resolve player: {name}")
-    if len(scored)>1 and scored[0][0]==scored[1][0]:
-        raise ValueError(f"ambiguous player: {name}: {scored[:3]}")
-    return scored[0][2]
+    aliases=PLAYER_ALIASES.get(name, [name])
+    candidates=[]
+    for alias in aliases:
+        aid=norm(alias)
+        for registry_name,pid in registry_names.items():
+            if norm(registry_name)==aid:
+                candidates.append((registry_name,pid))
+    ids={pid for _,pid in candidates}
+    if len(ids)==1:
+        return next(iter(ids))
+    if len(ids)>1:
+        raise ValueError(f"ambiguous explicit player alias: {name}: {candidates}")
+    raise ValueError(f"unresolved explicit player alias: {name}")
 
 def match_allowed(info):
     if info.get("gender")!="male": return False
