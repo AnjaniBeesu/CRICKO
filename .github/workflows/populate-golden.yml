@@ -1,4 +1,4 @@
-name: Populate deterministic golden answers # final two-path verification
+name: Populate deterministic golden answers # final normalized-contract check
 
 on:
   push:
