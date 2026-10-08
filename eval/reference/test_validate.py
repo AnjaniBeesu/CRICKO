@@ -20,3 +20,17 @@ def test_run_total_mismatch_is_rejected():
     bad = rows[0].__class__(**{**rows[0].__dict__, "total_runs": 5})
     with pytest.raises(ValueError, match="run total"):
         validate_rows([bad])
+
+
+def test_extras_breakdown_is_rejected():
+    rows = normalize_match(sample(), "match-1")
+    bad = rows[2].__class__(**{**rows[2].__dict__, "extras_total": 1})
+    with pytest.raises(ValueError, match="extras breakdown"):
+        validate_rows([bad])
+
+
+def test_missing_actual_delivery_is_rejected():
+    rows = normalize_match(sample(), "match-1")
+    bad = rows[0].__class__(**{**rows[0].__dict__, "actual_delivery": ""})
+    with pytest.raises(ValueError, match="actual_delivery"):
+        validate_rows([bad])
