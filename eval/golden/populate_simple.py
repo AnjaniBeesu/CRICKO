@@ -174,6 +174,7 @@ def main():
     rows=[json.loads(x) for x in Path(args.golden).read_text().splitlines() if x.strip()]
     zips={"IPL":[args.ipl],"T20I":[args.t20i]}
     done=0
+    player_map={}
     for x in rows:
         if x["block"]!="A": continue
         comp="IPL" if "IPL" in x["question"] else "T20I"
@@ -186,6 +187,7 @@ def main():
         ids=set(bat)|set(bowl)
         if not ids: continue
         pid=next(iter(ids))
+        player_map[x["id"]]=pid
         b=bat[pid]; w=bowl[pid]
         if m=="runs": value=b["runs"]
         elif m=="wickets": value=w["wickets"]
@@ -211,6 +213,8 @@ def main():
         x["notes"]="Computed by an independent source-level implementation against the pinned Cricsheet snapshot; external/manual reconciliation remains a release check."
         done+=1
     Path(args.out).write_text("\n".join(json.dumps(x,separators=(",",":")) for x in rows)+"\n")
+    if args.player_map_out:
+        Path(args.player_map_out).write_text(json.dumps(player_map, indent=2) + "\n")
     print(f"populated={done}")
 
 if __name__=="__main__": main()
