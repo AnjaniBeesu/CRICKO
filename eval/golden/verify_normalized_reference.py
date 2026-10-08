@@ -43,11 +43,13 @@ def metric_for(question: str) -> str:
         if needle in q: return metric
     raise ValueError(question)
 
-def calculate(rows: list[dict], pid: str, metric: str, season: str|None):
+def calculate(rows: list[dict], pid: str, metric: str, season: str|None, competition: str):
     balls=[]
     match_ids=set()
     innings_seen=set()
     for r in rows:
+        if competition == "IPL" and r["competition"] != "Indian Premier League": continue
+        if competition == "T20I" and r["competition"] == "Indian Premier League": continue
         if season and str(r["date"])[:4] != season: continue
         if r["batter_id"] != pid and r["bowler_id"] != pid: continue
         b=Ball(
@@ -105,7 +107,8 @@ def main():
         import re
         m=re.search(r"\b(?:IPL|T20I)\s+(20\d{2})\b",q,re.I)
         if m: season=m.group(1)
-        value=calculate(rows,pid,metric_for(q),season)
+        competition="IPL" if "IPL" in q else "T20I"
+        value=calculate(rows,pid,metric_for(q),season,competition)
         if value != expected:
             raise SystemExit(f"MISMATCH {case['id']}: generator={expected} normalized-reference={value}")
         checked+=1
