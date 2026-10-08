@@ -8,7 +8,7 @@ A normalized ball record must provide:
 
 - match_id
 - innings
-- over (1-based)
+- over (1-based after Cricsheet normalization)
 - legal_delivery
 - batter_id
 - bowler_id
@@ -38,6 +38,16 @@ Do not import production query-engine code into this package. Independence is th
 
 Cricsheet's official JSON format is normalized by `cricsheet_json.py`, then checked by `validate.py`. `ingest.py` accepts a downloaded JSON ZIP and emits deterministic JSONL for the MVP scope (men's T20/IT20, IPL + international, from 2022 onward).
 
-The current Cricsheet JSON format is 1.3.0. The upstream format documents stable player identifiers through the registry; team identity is kept as a separate mapping concern because the match JSON registry does not provide team IDs. citeturn1view0
+The current Cricsheet JSON format is 1.3.0. The adapter resolves player IDs from the source registry and team IDs through the versioned CRICKO team alias registry. Source team names that are not explicitly mapped fail loudly; there is no fuzzy fallback.
 
-The current download page lists an IPL JSON archive and reports 1,243 IPL matches; it also notes that some matches are withheld. These upstream counts are informational only until a local archive is hashed and pinned. citeturn2view0
+To create a reproducible local snapshot:
+
+`python -m eval.reference.ingest SOURCE_ZIP NORMALIZED_JSONL`
+
+Then create the immutable manifest:
+
+`python -m eval.reference.snapshot_manifest SOURCE_ZIP NORMALIZED_JSONL MANIFEST_JSON --snapshot-id <id> --retrieved-at <YYYY-MM-DD>`
+
+The manifest records SHA-256 hashes for both source and normalized artifacts. Golden numerical answers must not be populated until this manifest is pinned and independently checked.
+
+See the upstream [Cricsheet JSON format](https://cricsheet.org/format/json/) and [downloads](https://cricsheet.org/downloads/) for the source format and current availability.
