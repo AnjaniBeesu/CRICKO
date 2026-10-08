@@ -1,0 +1,45 @@
+name: Populate deterministic golden answers
+
+on:
+  push:
+    paths:
+      - "eval/golden/populate_simple.py"
+      - "eval/golden/cricko-golden-200.jsonl"
+      - ".github/workflows/populate-golden.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  populate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          lfs: true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Generate deterministic answers
+        run: |
+          python eval/golden/populate_simple.py \
+            --golden eval/golden/cricko-golden-200.jsonl \
+            --ipl data/snapshots/cricsheet/ipl_json.zip \
+            --t20i data/snapshots/cricsheet/t20s_male_json.zip \
+            --out /tmp/cricko-golden-200.jsonl
+
+      - name: Replace golden file when values were computed
+        run: |
+          cp /tmp/cricko-golden-200.jsonl eval/golden/cricko-golden-200.jsonl
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- eval/golden/cricko-golden-200.jsonl; then
+            echo "No golden changes."
+            exit 0
+          fi
+          git add eval/golden/cricko-golden-200.jsonl
+          git commit -m "eval: populate deterministic golden answers"
+          git push
