@@ -24,8 +24,7 @@ jobs:
           git lfs install
           git lfs version
 
-      - name: Verify reference suite
-        run: python -m pytest eval/reference -q
+      - name: Set up Python\n        uses: actions/setup-python@v5\n        with:\n          python-version: "3.12"\n\n      - name: Install test dependencies\n        run: python -m pip install --upgrade pip pytest\n\n      - name: Verify reference suite\n        run: python -m pytest eval/reference -q
 
       - name: Download official Cricsheet archives
         run: |
