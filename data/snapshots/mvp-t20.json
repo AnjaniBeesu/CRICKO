@@ -1,19 +1,57 @@
 {
-  "snapshot_id": "cricsheet-t20-mvp-PENDING",
-  "status": "NOT_PINNED",
+  "snapshot_id": "cricsheet-mvp-t20-2026-10-08",
+  "status": "PINNED",
   "source": "Cricsheet",
+  "source_format": "JSON",
+  "source_versions": [
+    "1.2.0",
+    "1.3.0"
+  ],
+  "source_license": "Open Data Commons Attribution License",
   "source_download_page": "https://cricsheet.org/downloads/",
+  "retrieved_at": "2026-10-08",
   "coverage": {
     "gender": "men",
-    "match_types": ["T20", "T20I"],
-    "competitions": ["Indian Premier League", "international T20"],
-    "scope_start": "2022-01-01"
+    "match_types": [
+      "T20",
+      "T20I"
+    ],
+    "competitions": [
+      "Indian Premier League",
+      "international T20"
+    ],
+    "scope_start": "2022-01-01",
+    "note": "Pinned source archives; production ingestion applies MVP filters and exclusions. Archives may contain records written with older Cricsheet JSON data versions."
   },
-  "retrieved_at": "2026-10-08",
+  "artifacts": [
+    {
+      "name": "ipl_json.zip",
+      "source_url": "https://cricsheet.org/downloads/ipl_json.zip",
+      "coverage_label": "IPL",
+      "sha256": "5757e04287179767ff8495f02902bd13812b9572ec8fa2ac1347ec2e9c6d4709",
+      "size_bytes": 5187770,
+      "source_match_files": 1243,
+      "source_versions": [
+        "1.2.0"
+      ]
+    },
+    {
+      "name": "t20s_male_json.zip",
+      "source_url": "https://cricsheet.org/downloads/t20s_male_json.zip",
+      "coverage_label": "T20 internationals",
+      "sha256": "e11435926b53f5a4c7ee914cf32acf3b089cab5e55a12c8b3a6dc463933645e4",
+      "size_bytes": 14351068,
+      "source_match_files": 3592,
+      "source_versions": [
+        "1.2.0",
+        "1.3.0"
+      ]
+    }
+  ],
   "notes": [
-    "Do not populate golden numerical answers from a moving download.",
-    "Create an immutable local/archive snapshot and record its file hashes before verification.",
-    "Record any withheld or unavailable matches that affect evaluation coverage.",
-    "Do not claim a license for redistribution until the applicable Cricsheet terms are verified."
+    "Source archives are stored with Git LFS and pinned by SHA-256.",
+    "Create a new snapshot_id rather than replacing a pinned archive.",
+    "Generate numerical golden answers only from this exact snapshot after independent verification.",
+    "Cricsheet withholds some matches; this snapshot must not be described as globally complete."
   ]
 }
