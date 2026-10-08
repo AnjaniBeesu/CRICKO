@@ -1,4 +1,4 @@
-name: Populate deterministic golden answers # lock batting-average semantics
+name: Populate deterministic golden answers # exclude retired-hurt dismissals
 
 on:
   push:
