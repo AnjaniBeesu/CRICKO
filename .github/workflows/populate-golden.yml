@@ -1,4 +1,4 @@
-name: Populate deterministic golden answers # exclude retired-hurt dismissals
+name: Populate deterministic golden answers # canonical-player cross-check
 
 on:
   push:
