@@ -1,0 +1,19 @@
+{
+  "snapshot_id": "cricsheet-t20-mvp-PENDING",
+  "status": "NOT_PINNED",
+  "source": "Cricsheet",
+  "source_download_page": "https://cricsheet.org/downloads/",
+  "coverage": {
+    "gender": "men",
+    "match_types": ["T20", "T20I"],
+    "competitions": ["Indian Premier League", "international T20"],
+    "scope_start": "2022-01-01"
+  },
+  "retrieved_at": "2026-10-08",
+  "notes": [
+    "Do not populate golden numerical answers from a moving download.",
+    "Create an immutable local/archive snapshot and record its file hashes before verification.",
+    "Record any withheld or unavailable matches that affect evaluation coverage.",
+    "Do not claim a license for redistribution until the applicable Cricsheet terms are verified."
+  ]
+}
