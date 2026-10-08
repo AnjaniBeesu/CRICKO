@@ -190,7 +190,7 @@ def main():
         # Resolve the target ID again from the populated maps.
         pid=player
         if pid not in bat and pid not in bowl: continue
-        player_map[x["id"]]=pid
+        player_map[x["id"]]=sorted(target_ids)
         b=bat[pid]; w=bowl[pid]
         if m=="runs": value=b["runs"]
         elif m=="wickets": value=w["wickets"]
