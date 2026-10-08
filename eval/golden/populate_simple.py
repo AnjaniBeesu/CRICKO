@@ -179,7 +179,7 @@ def main():
         comp="IPL" if "IPL" in x["question"] else "T20I"
         player=extract_player(x["question"])
         m=metric(x["question"])
-        season_match=re.search(r"\b(20\d{2})\b", x["question"])
+        season_match=re.search(r"\b(?:IPL|T20I)\s+(20\d{2})\b", x["question"], re.I)
         season=season_match.group(1) if season_match else None
         bat,bowl,matches,non_boundary=aggregate(zips[comp],player,season)
         # Resolve the target ID again from the populated maps.
