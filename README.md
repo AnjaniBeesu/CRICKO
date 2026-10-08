@@ -39,3 +39,13 @@ Open http://localhost:3000.
 The LLM should never invent a cricket statistic. Retrieve the evidence, calculate derived metrics deterministically, then let the model explain the result.
 
 Built for serious cricket questions.
+
+## Analytics foundation
+
+CRICKO now has a locked analytics methodology, an independent reference implementation, and a 200-case golden evaluation scaffold. Numerical golden answers remain pending until an immutable, hashed T20 dataset snapshot is pinned.
+
+- [Methodology](docs/methodology.md)
+- [Data contract](data/README.md)
+- [Snapshot requirements](data/snapshots/README.md)
+- [Reference implementation](eval/reference/README.md)
+- [Golden set](eval/golden/README.md)
