@@ -1,6 +1,7 @@
 name: Reference checks
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - "eval/**"
