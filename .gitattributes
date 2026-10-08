@@ -1,0 +1,2 @@
+# Keep source archives out of regular Git history; Git LFS stores the actual bytes.
+data/snapshots/cricsheet/*.zip filter=lfs diff=lfs merge=lfs -text
