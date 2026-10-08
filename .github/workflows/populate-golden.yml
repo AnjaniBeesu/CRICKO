@@ -1,4 +1,4 @@
-name: Populate deterministic golden answers # reconcile all cross-path mismatches
+name: Populate deterministic golden answers # persist reconciliation results
 
 on:
   push:
