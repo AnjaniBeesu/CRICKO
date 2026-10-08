@@ -95,15 +95,9 @@ def main():
         if case["block"]!="A" or case["expected_result"]["status"]!="VERIFIED_BY_INDEPENDENT_REFERENCE":
             continue
         expected=case["expected_result"]["values"]["value"]
-        pid_name=aliases[case["id"]]
-        pid=None
-        # Player IDs are encoded in the normalized dataset; use the unique ID
-        # associated with the explicit player name from the generated identity map.
-        for candidate in set(r["batter_id"] for r in rows)|set(r["bowler_id"] for r in rows):
-            if candidate == pid_name or candidate.endswith(pid_name.lower().replace(" ","_")):
-                pid=candidate; break
-        if pid is None:
-            raise SystemExit(f"no normalized player id for {case['id']} {pid_name}")
+        pid=aliases.get(case["id"])
+        if not pid:
+            raise SystemExit(f"no normalized player id for {case['id']}")
         season=None
         q=case["question"]
         import re
