@@ -4,12 +4,10 @@ This adapter is intentionally dependency-free and does not perform analytics.
 It preserves source semantics so the independent reference calculations remain
 separate from any future production engine.
 """
-
 from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any, Iterator
-
+from eval.reference.team_identity import TeamResolver, load_team_resolver
 
 @dataclass(frozen=True)
 class NormalizedDelivery:
@@ -39,13 +37,11 @@ class NormalizedDelivery:
     dismissal_kind: str | None
     dismissed_player_id: str | None
 
-
 def _id(registry: dict[str, str], name: str) -> str:
     try:
         return registry[name]
     except KeyError as exc:
         raise ValueError(f"player missing from registry: {name}") from exc
-
 
 def _extras(delivery: dict[str, Any]) -> dict[str, int]:
     extras = delivery.get("extras", {})
@@ -56,7 +52,6 @@ def _extras(delivery: dict[str, Any]) -> dict[str, int]:
         "legbyes": int(extras.get("legbyes", 0)),
         "penalty": int(extras.get("penalty", 0)),
     }
-
 
 def _dismissal(delivery: dict[str, Any], registry: dict[str, str]) -> tuple[str | None, str | None]:
     wickets = delivery.get("wickets", [])
@@ -71,8 +66,11 @@ def _dismissal(delivery: dict[str, Any], registry: dict[str, str]) -> tuple[str 
         raise ValueError("incomplete wicket record")
     return kind, _id(registry, player)
 
-
-def normalize_match(payload: dict[str, Any], match_id: str) -> list[NormalizedDelivery]:
+def normalize_match(
+    payload: dict[str, Any],
+    match_id: str,
+    team_resolver: TeamResolver | None = None,
+) -> list[NormalizedDelivery]:
     """Normalize one Cricsheet JSON match into one row per delivery."""
     info = payload["info"]
     registry = info["registry"]["people"]
@@ -80,17 +78,16 @@ def normalize_match(payload: dict[str, Any], match_id: str) -> list[NormalizedDe
     if len(teams) != 2:
         raise ValueError(f"expected exactly two teams, got {len(teams)}")
 
+    resolver = team_resolver or load_team_resolver()
+    team_ids = {team: resolver.resolve(team) for team in teams}
+
     date = info["dates"][0]
     competition = info.get("event", {}).get("name")
     match_type = info["match_type"]
     gender = info["gender"]
     scheduled_overs = int(info.get("overs", 20))
 
-    team_ids = {
-        team: team for team in teams
-    }
     rows: list[NormalizedDelivery] = []
-
     for innings_number, innings in enumerate(payload.get("innings", []), start=1):
         batting_team = innings["team"]
         bowling_team = next(team for team in teams if team != batting_team)
@@ -100,7 +97,6 @@ def normalize_match(payload: dict[str, Any], match_id: str) -> list[NormalizedDe
                 ex = _extras(raw)
                 runs = raw["runs"]
                 dismissal_kind, dismissed_id = _dismissal(raw, registry)
-
                 rows.append(
                     NormalizedDelivery(
                         match_id=match_id,
@@ -131,7 +127,6 @@ def normalize_match(payload: dict[str, Any], match_id: str) -> list[NormalizedDe
                     )
                 )
     return rows
-
 
 def iter_match_deliveries(payloads: Iterator[tuple[str, dict[str, Any]]]) -> Iterator[NormalizedDelivery]:
     """Normalize multiple (match_id, payload) pairs lazily."""
