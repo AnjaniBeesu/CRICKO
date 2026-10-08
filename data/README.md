@@ -7,10 +7,20 @@ The repository does not commit the full cricket dataset. Datasets are downloaded
 1. Download a fixed source release.
 2. Record source URL, retrieval timestamp, source version/release, and SHA-256 hashes.
 3. Normalize source records into CRICKO's canonical ball schema.
-4. Validate innings, deliveries, runs, wickets, teams, players, dates, and competition metadata.
-5. Emit a snapshot manifest under `data/snapshots/`.
-6. Run the independent reference tests.
-7. Only then populate golden numerical answers.
+4. Resolve every source team name through `data/entities/teams.json`; aliases are explicit and unknown names fail loudly.
+5. Validate innings, deliveries, runs, wickets, teams, players, dates, and competition metadata.
+6. Emit a snapshot manifest under `data/snapshots/`.
+7. Run the independent reference tests.
+8. Only then populate golden numerical answers.
+
+## Team identity
+
+Cricsheet provides team names in match data rather than a stable team registry equivalent to its player registry. CRICKO therefore keeps canonical team IDs in a versioned alias registry.
+
+- Franchise renames map to one stable ID where they represent the same franchise identity.
+- Source names remain traceable in the normalized input.
+- New or ambiguous names must be added explicitly.
+- No fuzzy matching or silent fallback is allowed.
 
 ## Canonical ball schema
 
