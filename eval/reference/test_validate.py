@@ -24,7 +24,7 @@ def test_run_total_mismatch_is_rejected():
 
 def test_extras_breakdown_is_rejected():
     rows = normalize_match(sample(), "match-1")
-    bad = rows[2].__class__(**{**rows[2].__dict__, "extras_total": 1})
+    bad = rows[2].__class__(**{**rows[2].__dict__, "extras_total": 3, "total_runs": 3})
     with pytest.raises(ValueError, match="extras breakdown"):
         validate_rows([bad])
 
@@ -34,3 +34,9 @@ def test_missing_actual_delivery_is_rejected():
     bad = rows[0].__class__(**{**rows[0].__dict__, "actual_delivery": ""})
     with pytest.raises(ValueError, match="actual_delivery"):
         validate_rows([bad])
+
+
+def test_last_one_based_over_is_valid():
+    rows = normalize_match(sample(), "match-last-over")
+    row = rows[0].__class__(**{**rows[0].__dict__, "over": 20})
+    validate_rows([row])
