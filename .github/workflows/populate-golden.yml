@@ -44,11 +44,12 @@ jobs:
             --golden /tmp/cricko-golden-200.jsonl \
             --normalized /tmp/normalized/ipl.jsonl \
             --normalized /tmp/normalized/t20i.jsonl \
-            --player-map /tmp/player-map.json
+            --player-map /tmp/player-map.json \
+            --out /tmp/verified-golden-200.jsonl
 
       - name: Replace golden file when values were computed
         run: |
-          cp /tmp/cricko-golden-200.jsonl eval/golden/cricko-golden-200.jsonl
+          cp /tmp/verified-golden-200.jsonl eval/golden/cricko-golden-200.jsonl
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git diff --quiet -- eval/golden/cricko-golden-200.jsonl; then
