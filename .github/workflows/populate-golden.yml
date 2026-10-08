@@ -1,4 +1,4 @@
-name: Populate deterministic golden answers # defer fielding-only match count
+name: Populate deterministic golden answers # reset-before-recompute
 
 on:
   push:
