@@ -1,4 +1,4 @@
-name: Populate deterministic golden answers # complete canonical-player check
+name: Populate deterministic golden answers # final set comparisons
 
 on:
   push:
