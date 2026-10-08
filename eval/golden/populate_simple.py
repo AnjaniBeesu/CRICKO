@@ -169,7 +169,7 @@ def aggregate(zips, target_name, season=None):
 
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--golden",required=True); ap.add_argument("--ipl",required=True); ap.add_argument("--t20i",required=True); ap.add_argument("--out",required=True)
+    ap.add_argument("--golden",required=True); ap.add_argument("--ipl",required=True); ap.add_argument("--t20i",required=True); ap.add_argument("--out",required=True); ap.add_argument("--player-map-out")
     args=ap.parse_args()
     rows=[json.loads(x) for x in Path(args.golden).read_text().splitlines() if x.strip()]
     zips={"IPL":[args.ipl],"T20I":[args.t20i]}
@@ -215,6 +215,6 @@ def main():
     Path(args.out).write_text("\n".join(json.dumps(x,separators=(",",":")) for x in rows)+"\n")
     if args.player_map_out:
         Path(args.player_map_out).write_text(json.dumps(player_map, indent=2) + "\n")
-    print(f"populated={done}")
+    if args.player_map_out:\n        Path(args.player_map_out).write_text(json.dumps(player_map, indent=2) + "\\n")\n    print(f"populated={done}")
 
 if __name__=="__main__": main()
