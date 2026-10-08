@@ -1,4 +1,4 @@
-name: Populate deterministic golden answers # persist reconciliation results
+name: Populate deterministic golden answers # support all simple metrics
 
 on:
   push:
