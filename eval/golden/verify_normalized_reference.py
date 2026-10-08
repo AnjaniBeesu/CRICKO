@@ -43,7 +43,7 @@ def metric_for(question: str) -> str:
         if needle in q: return metric
     raise ValueError(question)
 
-def calculate(rows: list[dict], pid: str, metric: str, season: str|None, competition: str):
+def calculate(rows: list[dict], player_ids: set[str], metric: str, season: str|None, competition: str):
     balls=[]
     match_ids=set()
     innings_seen=set()
@@ -51,7 +51,7 @@ def calculate(rows: list[dict], pid: str, metric: str, season: str|None, competi
         if competition == "IPL" and r["competition"] != "Indian Premier League": continue
         if competition == "T20I" and r["competition"] == "Indian Premier League": continue
         if season and str(r["date"])[:4] != season: continue
-        if r["batter_id"] != pid and r["bowler_id"] != pid: continue
+        if r["batter_id"] not in player_ids and r["bowler_id"] not in player_ids: continue
         b=Ball(
             match_id=r["match_id"], innings=r["innings"], over=r["over"],
             legal_delivery=r["legal_delivery"], batter_id=r["batter_id"],
@@ -61,7 +61,7 @@ def calculate(rows: list[dict], pid: str, metric: str, season: str|None, competi
             bowler_credited_wicket=(r["dismissal_kind"] is not None and r["dismissal_kind"] not in {"run out","retired hurt","retired out","obstructing the field"}),
             dismissal_kind=r["dismissal_kind"])
         balls.append(b); match_ids.add(r["match_id"])
-        if r["batter_id"]==pid: innings_seen.add((r["match_id"],r["innings"]))
+        if r["batter_id"] in player_ids: innings_seen.add((r["match_id"],r["innings"]))
     runs=sum(b.batter_runs for b in balls if b.batter_id==pid)
     batballs=sum(1 for b in balls if b.batter_id==pid and b.batter_faced and b.legal_delivery)
     fours=sum(1 for b in balls if b.batter_id==pid and b.batter_runs==4)
@@ -102,13 +102,14 @@ def main():
         pid=aliases.get(case["id"])
         if not pid:
             raise SystemExit(f"no normalized player id for {case['id']}")
+        player_ids=set(pid) if isinstance(pid,list) else {pid}
         season=None
         q=case["question"]
         import re
         m=re.search(r"\b(?:IPL|T20I)\s+(20\d{2})\b",q,re.I)
         if m: season=m.group(1)
         competition="IPL" if "IPL" in q else "T20I"
-        value=calculate(rows,pid,metric_for(q),season,competition)
+        value=calculate(rows,player_ids,metric_for(q),season,competition)
         if value != expected:
             raise SystemExit(f"MISMATCH {case['id']}: generator={expected} normalized-reference={value}")
         checked+=1
