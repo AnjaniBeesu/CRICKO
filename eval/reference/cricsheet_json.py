@@ -1,13 +1,25 @@
 """Normalize Cricsheet JSON deliveries into CRICKO's reference Ball contract.
 
-This adapter is intentionally dependency-free and does not perform analytics.
-It preserves source semantics so the independent reference calculations remain
-separate from any future production engine.
+The adapter is deliberately separate from analytics. It preserves source
+semantics, resolves stable player/team IDs, and exposes an explicit conversion
+to the independent reference Ball contract.
 """
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, Iterator
+
+from eval.reference.stats_reference import Ball
 from eval.reference.team_identity import TeamResolver, load_team_resolver
+
+# Wickets that must not be credited to the bowler under the CRICKO contract.
+NON_BOWLER_WICKETS = {
+    "run out",
+    "retired hurt",
+    "retired out",
+    "obstructing the field",
+}
+
 
 @dataclass(frozen=True)
 class NormalizedDelivery:
@@ -22,10 +34,12 @@ class NormalizedDelivery:
     scheduled_overs: int
     over: int
     delivery: int
+    actual_delivery: str
     batter_id: str
     bowler_id: str
     non_striker_id: str
     legal_delivery: bool
+    batter_faced: bool
     batter_runs: int
     extras_total: int
     wide_runs: int
@@ -37,11 +51,46 @@ class NormalizedDelivery:
     dismissal_kind: str | None
     dismissed_player_id: str | None
 
+    @property
+    def bowler_runs(self) -> int:
+        # Byes, leg-byes and penalty runs are not charged to the bowler.
+        return self.total_runs - self.bye_runs - self.legbye_runs - self.penalty_runs
+
+    @property
+    def batter_dismissed(self) -> bool:
+        return self.dismissed_player_id is not None
+
+    @property
+    def bowler_credited_wicket(self) -> bool:
+        return (
+            self.dismissal_kind is not None
+            and self.dismissal_kind not in NON_BOWLER_WICKETS
+        )
+
+    def to_ball(self) -> Ball:
+        return Ball(
+            match_id=self.match_id,
+            innings=self.innings,
+            over=self.over,
+            legal_delivery=self.legal_delivery,
+            batter_id=self.batter_id,
+            bowler_id=self.bowler_id,
+            batter_runs=self.batter_runs,
+            total_runs=self.total_runs,
+            bowler_runs=self.bowler_runs,
+            batter_faced=self.batter_faced,
+            batter_dismissed=self.batter_dismissed,
+            bowler_credited_wicket=self.bowler_credited_wicket,
+            dismissal_kind=self.dismissal_kind,
+        )
+
+
 def _id(registry: dict[str, str], name: str) -> str:
     try:
         return registry[name]
     except KeyError as exc:
         raise ValueError(f"player missing from registry: {name}") from exc
+
 
 def _extras(delivery: dict[str, Any]) -> dict[str, int]:
     extras = delivery.get("extras", {})
@@ -53,12 +102,17 @@ def _extras(delivery: dict[str, Any]) -> dict[str, int]:
         "penalty": int(extras.get("penalty", 0)),
     }
 
-def _dismissal(delivery: dict[str, Any], registry: dict[str, str]) -> tuple[str | None, str | None]:
+
+def _dismissal(
+    delivery: dict[str, Any], registry: dict[str, str]
+) -> tuple[str | None, str | None]:
     wickets = delivery.get("wickets", [])
     if not wickets:
         return None, None
     if len(wickets) != 1:
-        raise ValueError("multiple wickets on one delivery require explicit handling")
+        raise ValueError(
+            "multiple wickets on one delivery require explicit handling"
+        )
     wicket = wickets[0]
     kind = wicket.get("kind")
     player = wicket.get("player_out")
@@ -66,12 +120,13 @@ def _dismissal(delivery: dict[str, Any], registry: dict[str, str]) -> tuple[str 
         raise ValueError("incomplete wicket record")
     return kind, _id(registry, player)
 
+
 def normalize_match(
     payload: dict[str, Any],
     match_id: str,
     team_resolver: TeamResolver | None = None,
 ) -> list[NormalizedDelivery]:
-    """Normalize one Cricsheet JSON match into one row per delivery."""
+    """Normalize one Cricsheet JSON match into one row per source delivery."""
     info = payload["info"]
     registry = info["registry"]["people"]
     teams = info["teams"]
@@ -93,10 +148,13 @@ def normalize_match(
         bowling_team = next(team for team in teams if team != batting_team)
         for over_obj in innings.get("overs", []):
             over_number = int(over_obj["over"])
-            for delivery_index, raw in enumerate(over_obj.get("deliveries", []), start=1):
+            for delivery_index, raw in enumerate(
+                over_obj.get("deliveries", []), start=1
+            ):
                 ex = _extras(raw)
                 runs = raw["runs"]
                 dismissal_kind, dismissed_id = _dismissal(raw, registry)
+                wide = ex["wides"] > 0
                 rows.append(
                     NormalizedDelivery(
                         match_id=match_id,
@@ -110,10 +168,12 @@ def normalize_match(
                         scheduled_overs=scheduled_overs,
                         over=over_number,
                         delivery=delivery_index,
+                        actual_delivery=str(raw["actual_delivery"]),
                         batter_id=_id(registry, raw["batter"]),
                         bowler_id=_id(registry, raw["bowler"]),
                         non_striker_id=_id(registry, raw["non_striker"]),
-                        legal_delivery=(ex["wides"] == 0 and ex["noballs"] == 0),
+                        legal_delivery=not wide and ex["noballs"] == 0,
+                        batter_faced=not wide,
                         batter_runs=int(runs["batter"]),
                         extras_total=int(runs["extras"]),
                         wide_runs=ex["wides"],
@@ -128,7 +188,10 @@ def normalize_match(
                 )
     return rows
 
-def iter_match_deliveries(payloads: Iterator[tuple[str, dict[str, Any]]]) -> Iterator[NormalizedDelivery]:
+
+def iter_match_deliveries(
+    payloads: Iterator[tuple[str, dict[str, Any]]],
+) -> Iterator[NormalizedDelivery]:
     """Normalize multiple (match_id, payload) pairs lazily."""
     for match_id, payload in payloads:
         yield from normalize_match(payload, match_id)
