@@ -39,9 +39,9 @@ def inspect_archive(path: Path) -> tuple[set[str], int]:
         bad = archive.testzip()
         if bad:
             raise ValueError(f"{path}: corrupt ZIP member {bad}")
-    if len(versions) != 1:
-        raise ValueError(f"{path}: unexpected data versions {sorted(versions)}")
-    return next(iter(versions)), len(names)
+    if not versions:
+        raise ValueError(f"{path}: no Cricsheet data_version metadata found")
+    return versions, len(names)
 
 
 def main() -> int:
@@ -49,11 +49,11 @@ def main() -> int:
     output = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("data/snapshots/mvp-t20.json")
 
     artifacts = []
-    versions = set()
+    versions: set[str] = set()
     for filename, url, label in SOURCES:
         path = root / filename
-        version, match_count = inspect_archive(path)
-        versions.add(version)
+        archive_versions, match_count = inspect_archive(path)
+        versions.update(archive_versions)
         artifacts.append(
             {
                 "name": filename,
@@ -61,12 +61,13 @@ def main() -> int:
                 "coverage_label": label,
                 "sha256": sha256(path),
                 "size_bytes": path.stat().st_size,
-                "source_match_files": match_count,\n                "source_versions": sorted(archive_versions),
+                "source_match_files": match_count,
+                "source_versions": sorted(archive_versions),
             }
         )
 
-    if len(versions) != 1:
-        raise ValueError(f"archives disagree on Cricsheet data version: {sorted(versions)}")
+    if not versions:
+        raise ValueError("no Cricsheet data versions found")
 
     retrieved_at = datetime.now(timezone.utc).date().isoformat()
     manifest = {
@@ -83,7 +84,7 @@ def main() -> int:
             "match_types": ["T20", "T20I"],
             "competitions": ["Indian Premier League", "international T20"],
             "scope_start": "2022-01-01",
-            "note": "Pinned source archives; production ingestion applies MVP filters and exclusions.",
+            "note": "Pinned source archives; production ingestion applies MVP filters and exclusions. Archives may contain records written with older Cricsheet JSON data versions.",
         },
         "artifacts": artifacts,
         "notes": [
