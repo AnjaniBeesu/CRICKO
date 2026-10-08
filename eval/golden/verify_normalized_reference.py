@@ -70,11 +70,17 @@ def calculate(rows: list[dict], player_ids: set[str], metric: str, season: str|N
     bowlballs=sum(1 for b in balls if b.bowler_id in player_ids and b.legal_delivery)
     bowlruns=sum(b.bowler_runs for b in balls if b.bowler_id in player_ids)
     wickets=sum(1 for b in balls if b.bowler_id in player_ids and b.bowler_credited_wicket)
+    innings_scores=defaultdict(int)
+    for b in balls:
+        if b.batter_id in player_ids:
+            innings_scores[(b.match_id,b.innings)]+=b.batter_runs
     if metric=="runs": return runs
     if metric=="matches": return len(match_ids)
     if metric=="fours": return fours
     if metric=="sixes": return sixes
     if metric=="wickets": return wickets
+    if metric=="centuries": return sum(1 for score in innings_scores.values() if score>=100)
+    if metric=="fifties": return sum(1 for score in innings_scores.values() if 50<=score<100)
     if metric=="strike_rate": return round(100*runs/batballs,2) if batballs else None
     if metric=="economy": return round(6*bowlruns/bowlballs,2) if bowlballs else None
     if metric=="bowling_average": return round(bowlruns/wickets,2) if wickets else None
