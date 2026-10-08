@@ -1,6 +1,6 @@
 import pytest
 
-from stats_reference import Ball, batting_summary, bowling_summary, phase_for_over, require_min_sample
+from eval.reference.stats_reference import Ball, batting_summary, bowling_summary, phase_for_over, require_min_sample
 
 
 def test_standard_t20_phases():
