@@ -87,6 +87,11 @@ def build_snapshot(source_zip: str, output_jsonl: str) -> dict[str, Any]:
                 excluded.append({"match_id": match_id, "reason": "unknown_team", "detail": str(exc)})
                 unknown_teams.add(str(exc).split("unknown team name: ", 1)[-1].split(";", 1)[0].strip("'\""))
                 continue
+            except ValueError as exc:
+                if "multiple wickets on one delivery require explicit handling" not in str(exc):
+                    raise
+                excluded.append({"match_id": match_id, "reason": "multiple_wickets_on_delivery", "detail": str(exc)})
+                continue
 
             validate_rows(rows)
             for row in rows:
