@@ -53,5 +53,22 @@
     "Create a new snapshot_id rather than replacing a pinned archive.",
     "Generate numerical golden answers only from this exact snapshot after independent verification.",
     "Cricsheet withholds some matches; this snapshot must not be described as globally complete."
-  ]
+  ],
+  "normalized_scope": {
+    "accepted_matches": 2607,
+    "normalized_deliveries": 599796,
+    "by_artifact": {
+      "ipl_json_zip": {
+        "accepted_matches": 356,
+        "normalized_deliveries": 85793
+      },
+      "t20s_male_json_zip": {
+        "accepted_matches": 2251,
+        "normalized_deliveries": 514003
+      }
+    },
+    "unknown_team_matches": 0,
+    "multiple_wickets_on_delivery_matches_excluded": 5,
+    "note": "Counts produced by the pinned-source MVP validation workflow on 2026-10-08. Other methodology exclusions (pre-2022, non-MVP competitions, revised targets, no-results, and Super Over/bowl-out deciders) are applied during ingestion."
+  }
 }
