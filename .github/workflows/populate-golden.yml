@@ -1,4 +1,4 @@
-name: Populate deterministic golden answers # final set comparisons
+name: Populate deterministic golden answers # defer unresolved cases
 
 on:
   push:
