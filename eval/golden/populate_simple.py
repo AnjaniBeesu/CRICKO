@@ -167,7 +167,7 @@ def aggregate(zips, target_name, season=None):
                                 if w["kind"] not in EXCLUDED_DISMISSALS: bowl[target_key]["wickets"]+=1
             for pid2,score in innings_scores.items():
                 bat[pid2]["innings"]+=1; bat[pid2]["scores"].append(score)
-    return bat,bowl,len(matches),non_boundary
+    return bat,bowl,len(matches),non_boundary,target_ids
 
 def main():
     ap=argparse.ArgumentParser()
@@ -186,7 +186,7 @@ def main():
         m=metric(x["question"])
         season_match=re.search(r"\b(?:IPL|T20I)\s+(20\d{2})\b", x["question"], re.I)
         season=season_match.group(1) if season_match else None
-        bat,bowl,matches,non_boundary=aggregate(zips[comp],player,season)
+        bat,bowl,matches,non_boundary,target_ids=aggregate(zips[comp],player,season)
         # Resolve the target ID again from the populated maps.
         pid=player
         if pid not in bat and pid not in bowl: continue
