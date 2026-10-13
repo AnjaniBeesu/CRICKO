@@ -14,6 +14,18 @@ on:
       - "package-lock.json"
       - "next.config.ts"
       - ".github/workflows/mvp-data-validation.yml"
+  pull_request:
+    paths:
+      - "data/entities/**"
+      - "data/snapshots/**"
+      - "eval/reference/**"
+      - "database/**"
+      - "api/**"
+      - "app/**"
+      - "package.json"
+      - "package-lock.json"
+      - "next.config.ts"
+      - ".github/workflows/mvp-data-validation.yml"
 
 permissions:
   contents: write
@@ -173,6 +185,7 @@ jobs:
           npm run build
 
       - name: Commit generated metadata registries
+        if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
