@@ -46,7 +46,7 @@ def team_resolver(entity_registry: dict[str, Any]) -> tuple[dict[str, str], dict
         team_id = item["id"]
         teams[team_id] = item
         for alias in [item["display_name"], *item.get("aliases", [])]:
-            key = alias.strip().casefold()
+            key = " ".join(alias.strip().casefold().split())
             existing = aliases.get(key)
             if existing and existing != team_id:
                 raise ValueError(f"Ambiguous team alias {alias!r}: {existing} vs {team_id}")
@@ -58,7 +58,7 @@ def resolve_team(name: str | None, aliases: dict[str, str], *, context: str) -> 
     if name is None:
         return None
     try:
-        return aliases[name.strip().casefold()]
+        return aliases[" ".join(name.strip().casefold().split())]
     except KeyError as exc:
         raise ValueError(f"Unmapped team {name!r} in {context}; add an explicit alias first") from exc
 
