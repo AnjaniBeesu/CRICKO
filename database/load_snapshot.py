@@ -230,8 +230,12 @@ def load(args: argparse.Namespace) -> dict[str, int]:
                             row["team_batting_id"], row["team_bowling_id"], row["batter_id"], row["bowler_id"], row["non_striker_id"],
                             bool(row["legal_delivery"]), bool(row["batter_faced"]), int(row["batter_runs"]), int(row["extras_total"]),
                             int(row["wide_runs"]), int(row["noball_runs"]), int(row["bye_runs"]), int(row["legbye_runs"]),
-                            int(row["penalty_runs"]), int(row["total_runs"]), int(row["bowler_runs"]), row.get("dismissal_kind"),
-                            row.get("dismissed_player_id"), bool(row["bowler_credited_wicket"]),
+                            int(row["penalty_runs"]), int(row["total_runs"]),
+                            int(row["total_runs"]) - int(row["bye_runs"]) - int(row["legbye_runs"]) - int(row["penalty_runs"]),
+                            row.get("dismissal_kind"), row.get("dismissed_player_id"),
+                            bool(row.get("dismissal_kind") and row["dismissal_kind"] not in {
+                                "run out", "retired hurt", "retired out", "obstructing the field"
+                            }),
                         ))
                         if len(batch) >= 5000:
                             cur.executemany(insert_sql, batch)
