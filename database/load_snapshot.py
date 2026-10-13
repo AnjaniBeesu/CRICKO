@@ -196,6 +196,11 @@ def load(args: argparse.Namespace) -> dict[str, int]:
                          Jsonb(match.get("officials", {})), match.get("source_data_version")),
                     )
 
+                current_match_ids = [m["match_id"] for m in matches]
+                # Rebuild match-scoped children so changed rosters/innings cannot leave stale rows.
+                cur.execute("DELETE FROM player_match_map WHERE match_id = ANY(%s)", (current_match_ids,))
+                cur.execute("DELETE FROM innings WHERE match_id = ANY(%s)", (current_match_ids,))
+
                 for (match_id, innings_number), (batting, bowling) in observed_innings.items():
                     cur.execute(
                         """INSERT INTO innings(match_id,innings_number,batting_team_id,bowling_team_id)
@@ -204,11 +209,6 @@ def load(args: argparse.Namespace) -> dict[str, int]:
                              batting_team_id=EXCLUDED.batting_team_id,bowling_team_id=EXCLUDED.bowling_team_id""",
                         (match_id, innings_number, batting, bowling),
                     )
-
-                current_match_ids = [m["match_id"] for m in matches]
-                # Rebuild match-scoped children so changed rosters/innings cannot leave stale rows.
-                cur.execute("DELETE FROM player_match_map WHERE match_id = ANY(%s)", (current_match_ids,))
-                cur.execute("DELETE FROM innings WHERE match_id = ANY(%s)", (current_match_ids,))
 
                 for (player_id, match_id, team_id), name in roster_rows.items():
                     cur.execute(
