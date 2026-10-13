@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowUpRight, BarChart3, ChevronRight, CircleDot, Search, Sparkles, Trophy, Zap } from "lucide-react";
 
 const suggestions=[
@@ -15,8 +15,29 @@ const insights=[
   {label:"NEXT MATCH",value:"India vs England",meta:"Tomorrow · Ahmedabad",icon:Trophy}
 ];
 
+type Batter = { player_id: string; player: string; runs: number; balls_faced: number; matches: number; strike_rate: number | null };
+type Leaderboard = { scope: string; definition: string; count: number; results: Batter[] };
+
 export default function Home(){
   const [query,setQuery]=useState("");
+  const [leaderboard,setLeaderboard]=useState<Leaderboard|null>(null);
+  const [leaderboardError,setLeaderboardError]=useState("");
+  const [leaderboardLoading,setLeaderboardLoading]=useState(true);
+
+  useEffect(()=>{
+    let active=true;
+    fetch("/api/stats/top-batters?limit=5&min_balls=30",{cache:"no-store"})
+      .then(async response=>{
+        const payload=await response.json();
+        if(!response.ok) throw new Error(payload.detail||payload.error||"Statistics service unavailable");
+        return payload as Leaderboard;
+      })
+      .then(payload=>{if(active)setLeaderboard(payload);})
+      .catch(error=>{if(active)setLeaderboardError(error instanceof Error?error.message:"Unable to load statistics");})
+      .finally(()=>{if(active)setLeaderboardLoading(false);});
+    return ()=>{active=false;};
+  },[]);
+
   const [asked,setAsked]=useState("");
   const ask=(q=query)=>{if(!q.trim())return;setQuery(q);setAsked(q)};
   return <main>
@@ -51,6 +72,13 @@ export default function Home(){
       <div className="section-kicker">01 / LIVE SIGNALS</div>
       <div className="section-title"><h2>The game,<br/><em>in context.</em></h2><p>Not another scoreboard. Cricko turns cricket data into signals you can actually reason about.</p></div>
       <div className="insight-grid">{insights.map(({label,value,meta,icon:Icon})=><article className="insight" key={label}><div className="insight-top"><span>{label}</span><Icon size={17}/></div><h3>{value}</h3><p>{meta}</p></article>)}</div>
+      <div className="leaderboard">
+        <div className="leaderboard-heading"><div><span className="section-kicker">DATABASE QUERY / 01</span><h3>Most runs.<br/><em>No guesswork.</em></h3></div><span className="query-badge">DETERMINISTIC SQL</span></div>
+        <p className="leaderboard-definition">Top batters in the loaded Cricsheet snapshot, ranked by batter-attributed runs with a 30-ball minimum.</p>
+        {leaderboardLoading&&<p className="service-message">Querying the CRICKO stats API…</p>}
+        {!leaderboardLoading&&leaderboardError&&<p className="service-message service-error">Stats API not connected yet. {leaderboardError}</p>}
+        {leaderboard&&<><div className="leaderboard-table-wrap"><table className="leaderboard-table"><thead><tr><th>#</th><th>BATTER</th><th>RUNS</th><th>BALLS</th><th>SR</th><th>MATCHES</th></tr></thead><tbody>{leaderboard.results.map((batter,index)=><tr key={batter.player_id}><td>{String(index+1).padStart(2,"0")}</td><td>{batter.player}</td><td>{batter.runs.toLocaleString("en-IN")}</td><td>{batter.balls_faced.toLocaleString("en-IN")}</td><td>{batter.strike_rate===null?"—":batter.strike_rate.toFixed(2)}</td><td>{batter.matches}</td></tr>)}</tbody></table></div><p className="leaderboard-scope">{leaderboard.scope} {leaderboard.count===0?"No batters meet the current minimum sample size.":""}</p></>}
+      </div>
     </section>
 
     <section className="method" id="method">
