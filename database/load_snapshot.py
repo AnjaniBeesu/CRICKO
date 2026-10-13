@@ -205,6 +205,11 @@ def load(args: argparse.Namespace) -> dict[str, int]:
                         (match_id, innings_number, batting, bowling),
                     )
 
+                current_match_ids = [m["match_id"] for m in matches]
+                # Rebuild match-scoped children so changed rosters/innings cannot leave stale rows.
+                cur.execute("DELETE FROM player_match_map WHERE match_id = ANY(%s)", (current_match_ids,))
+                cur.execute("DELETE FROM innings WHERE match_id = ANY(%s)", (current_match_ids,))
+
                 for (player_id, match_id, team_id), name in roster_rows.items():
                     cur.execute(
                         """INSERT INTO player_match_map(player_id,match_id,team_id,source_name) VALUES (%s,%s,%s,%s)
@@ -243,18 +248,46 @@ def load(args: argparse.Namespace) -> dict[str, int]:
                 if batch:
                     cur.executemany(insert_sql, batch)
 
-                # Verify persisted totals before transaction commit.
-                cur.execute("SELECT COUNT(*) FROM deliveries WHERE match_id = ANY(%s)", ([m["match_id"] for m in matches],))
-                persisted_deliveries = cur.fetchone()[0]
-                if persisted_deliveries != row_count:
-                    raise RuntimeError(f"Delivery count mismatch: expected {row_count}, stored {persisted_deliveries}")
-                cur.execute("SELECT COUNT(*) FROM matches WHERE match_id = ANY(%s)", ([m["match_id"] for m in matches],))
-                persisted_matches = cur.fetchone()[0]
-                if persisted_matches != len(matches):
-                    raise RuntimeError(f"Match count mismatch: expected {len(matches)}, stored {persisted_matches}")
+                # Verify all expected entity and fact counts before transaction commit.
+                current_match_ids = [m["match_id"] for m in matches]
+                checks = [
+                    ("matches", "SELECT COUNT(*) FROM matches WHERE match_id = ANY(%s)", current_match_ids, len(matches)),
+                    ("innings", "SELECT COUNT(*) FROM innings WHERE match_id = ANY(%s)", current_match_ids, len(observed_innings)),
+                    ("deliveries", "SELECT COUNT(*) FROM deliveries WHERE match_id = ANY(%s)", current_match_ids, row_count),
+                    ("player_match_map", "SELECT COUNT(*) FROM player_match_map WHERE match_id = ANY(%s)", current_match_ids, len(roster_rows)),
+                    ("players", "SELECT COUNT(*) FROM players WHERE player_id = ANY(%s)", [p["source_player_id"] for p in player_rows], len(player_rows)),
+                    ("teams", "SELECT COUNT(*) FROM teams WHERE team_id = ANY(%s)", list(canonical_teams), len(canonical_teams)),
+                ]
+                persisted: dict[str, int] = {}
+                for label, sql, ids, expected in checks:
+                    cur.execute(sql, (ids,))
+                    actual = cur.fetchone()[0]
+                    persisted[label] = actual
+                    if actual != expected:
+                        raise RuntimeError(f"{label} count mismatch: expected {expected}, stored {actual}")
 
-    counts["persisted_matches"] = persisted_matches
-    counts["persisted_deliveries"] = persisted_deliveries
+                cur.execute(
+                    """SELECT COUNT(*) FROM deliveries d
+                       JOIN innings i USING (match_id, innings_number)
+                       WHERE d.batting_team_id <> i.batting_team_id
+                          OR d.bowling_team_id <> i.bowling_team_id"""
+                )
+                mismatched_innings_teams = cur.fetchone()[0]
+                if mismatched_innings_teams:
+                    raise RuntimeError(f"Found {mismatched_innings_teams} delivery/innings team mismatches")
+
+                cur.execute(
+                    """SELECT COUNT(*) FROM deliveries
+                       WHERE total_runs <> batter_runs + extras_total
+                          OR bowler_runs <> total_runs - bye_runs - legbye_runs - penalty_runs
+                          OR (wide_runs > 0 AND batter_faced)
+                          OR ((wide_runs > 0 OR noball_runs > 0) AND legal_delivery)"""
+                )
+                invalid_deliveries = cur.fetchone()[0]
+                if invalid_deliveries:
+                    raise RuntimeError(f"Found {invalid_deliveries} delivery run/legality integrity violations")
+
+    counts.update({f"persisted_{key}": value for key, value in persisted.items()})
     return counts
 
 
