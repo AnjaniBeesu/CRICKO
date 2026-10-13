@@ -44,9 +44,13 @@ uvicorn api.main:app --reload --port 8000
 ```
 
 - `GET /healthz` checks database connectivity.
-- `GET /stats/top-batters?limit=10&min_balls=30` returns the leaderboard.
-- Add `&competition=Indian%20Premier%20League` to filter to the IPL.
+- `GET /stats/top-batters?limit=10&min_balls=30` returns a runs leaderboard with match IDs, balls faced, strike rate, filters, and snapshot ID.
+- `GET /stats/top-bowlers?limit=10&min_legal_balls=60` returns credited wickets, bowler-charged runs, economy, bowling average, and bowling strike rate. Undefined average/strike rate values are `null`.
+- `GET /stats/phases?phase=powerplay` supports `powerplay` (overs 1–6), `middle` (7–15), and `death` (16–20), returning aggregate runs, wickets, legal balls, run rate, match IDs, and formula.
+- `GET /head-to-head?batter_id=<source-player-id>&bowler_id=<source-player-id>` returns runs, balls faced, strike rate, bowler-credited dismissals, and match IDs. Add `&competition=Indian%20Premier%20League` to scope it to the IPL.
 - The Next.js homepage calls the same-origin `/api/stats/top-batters` proxy. Set `CRICKO_API_URL` in the Next.js environment to the reachable FastAPI base URL (for example, `http://127.0.0.1:8000` for local development).
+
+All metric endpoints use SQL aggregates and return the pinned snapshot ID. The phase endpoint is an aggregate across the dataset, not a per-match trend. Player identifiers are source IDs; name-to-ID query planning and natural-language `/query` are not implemented yet.
 
 The API requires `DATABASE_URL`; do not commit production database credentials. GitHub Actions uses a temporary PostgreSQL 17 service to exercise ingestion, persistence, integrity checks, the API, and the frontend build.
 

@@ -179,6 +179,37 @@ jobs:
           print("FastAPI deterministic stats smoke test passed.")
           PY
 
+      - name: Smoke-test bowling, phase, and head-to-head endpoints
+        run: |
+          curl --silent --show-error --fail "http://127.0.0.1:8000/stats/top-bowlers?limit=5&min_legal_balls=60" | tee /tmp/cricko-bowlers.json
+          curl --silent --show-error --fail "http://127.0.0.1:8000/stats/phases?phase=powerplay" | tee /tmp/cricko-phase.json
+          python - <<'PY'
+          import json
+          import urllib.parse
+          import urllib.request
+
+          batters = json.load(open("/tmp/cricko-stats.json", encoding="utf-8"))["results"]
+          bowlers = json.load(open("/tmp/cricko-bowlers.json", encoding="utf-8"))["results"]
+          phase = json.load(open("/tmp/cricko-phase.json", encoding="utf-8"))
+          assert batters and bowlers
+          assert all(row["legal_balls"] >= 60 for row in bowlers)
+          assert all(row["runs_conceded"] >= 0 for row in bowlers)
+          assert phase["phase"] == "powerplay"
+          assert phase["filters"]["over_start"] == 1 and phase["filters"]["over_end"] == 6
+          assert phase["runs"] >= 0 and phase["legal_balls"] >= 0
+          params = urllib.parse.urlencode({
+              "batter_id": batters[0]["player_id"],
+              "bowler_id": bowlers[0]["player_id"],
+          })
+          with urllib.request.urlopen("http://127.0.0.1:8000/head-to-head?" + params) as response:
+              h2h = json.load(response)
+          assert h2h["batter_id"] == batters[0]["player_id"]
+          assert h2h["bowler_id"] == bowlers[0]["player_id"]
+          assert h2h["runs"] >= 0 and h2h["balls_faced"] >= 0
+          assert h2h["snapshot_id"] == "cricsheet-mvp-t20-2026-10-08"
+          print("Bowling, phase, and head-to-head API smoke tests passed.")
+          PY
+
       - name: Build Next.js interface
         run: |
           npm install
