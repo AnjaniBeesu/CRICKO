@@ -92,6 +92,7 @@ def load(args: argparse.Namespace) -> dict[str, int]:
     # collects observed innings and makes metadata/identity gaps fail clearly.
     delivery_paths = [(path, archive_name) for path, archive_name in archive_inputs]
     observed_innings: dict[tuple[str, int], tuple[str, str]] = {}
+    included_match_keys: set[tuple[str, str]] = set()
     row_count = 0
     for path, archive_name in delivery_paths:
         for row in read_jsonl(path):
@@ -99,6 +100,7 @@ def load(args: argparse.Namespace) -> dict[str, int]:
             metadata = match_by_source.get(key)
             if metadata is None:
                 raise ValueError(f"No metadata match for source key {key}")
+            included_match_keys.add(key)
             canonical_match_id = metadata["match_id"]
             innings_key = (canonical_match_id, int(row["innings"]))
             pair = (row["team_batting_id"], row["team_bowling_id"])
@@ -106,6 +108,18 @@ def load(args: argparse.Namespace) -> dict[str, int]:
             if prior != pair:
                 raise ValueError(f"Conflicting teams for innings {innings_key}: {prior} vs {pair}")
             row_count += 1
+
+    # The metadata collector intentionally preserves all in-scope source matches,
+    # including records later excluded by the stricter normalizer (for example,
+    # multiple wickets on one delivery). Only persist matches with normalized rows.
+    matches = [
+        match for match in matches
+        if (match["source_archive"], str(match["source_match_id"])) in included_match_keys
+    ]
+    match_by_source = {
+        (match["source_archive"], str(match["source_match_id"])): match
+        for match in matches
+    }
 
     player_rows = players_doc["players"]
     team_rows = teams_doc["teams"]
@@ -140,10 +154,9 @@ def load(args: argparse.Namespace) -> dict[str, int]:
                          player.get("bio_fields_status", "NOT_PROVIDED_BY_THIS_COLLECTOR")),
                     )
 
-                for source_team in team_rows:
-                    # The source registry is an audit ledger; any unmapped team
-                    # in a selected match is caught below rather than auto-created.
-                    resolve_team(source_team["source_team_name"], aliases, context="team source registry")
+                # teams-source.json is an audit ledger and can contain names from
+                # matches excluded by the stricter normalizer. Resolve teams only
+                # when they occur in a match included in the normalized delivery set.
 
                 for match in matches:
                     source_teams = match["teams_source_names"]
