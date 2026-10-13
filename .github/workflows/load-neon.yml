@@ -1,0 +1,103 @@
+name: Load Neon (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      # ---------- STEP 1: Get the repo + real LFS archives ----------
+      - name: Checkout (with LFS)
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Pull LFS objects
+        run: |
+          git lfs install
+          git lfs pull
+          git lfs ls-files
+
+      - name: Verify archives are real (not pointers)
+        run: |
+          ls -l data/snapshots/cricsheet/ipl_json.zip
+          ls -l data/snapshots/cricsheet/t20s_male_json.zip
+          SIZE1=$(stat -c%s data/snapshots/cricsheet/ipl_json.zip)
+          SIZE2=$(stat -c%s data/snapshots/cricsheet/t20s_male_json.zip)
+          echo "ipl_json.zip size: $SIZE1"
+          echo "t20s_male_json.zip size: $SIZE2"
+          if [ "$SIZE1" -lt 1000000 ]; then
+            echo "ipl_json.zip is too small — LFS pull failed"
+            exit 1
+          fi
+          if [ "$SIZE2" -lt 1000000 ]; then
+            echo "t20s_male_json.zip is too small — LFS pull failed"
+            exit 1
+          fi
+
+      # ---------- STEP 2: Dependencies + required files ----------
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r database/requirements.txt
+
+      - name: Verify required files exist
+        run: |
+          test -f database/load_snapshot.py
+          test -f database/schema.sql
+          test -f data/collected/players-source.json
+          test -f data/collected/teams-source.json
+          test -f data/collected/matches-metadata.jsonl
+          test -f data/entities/teams.json
+          echo "All required files present."
+
+      # ---------- STEP 3: Normalize Cricsheet JSON -> JSONL ----------
+      - name: Generate normalized JSONL
+        run: |
+          python -m eval.reference.ingest \
+            data/snapshots/cricsheet/ipl_json.zip \
+            /tmp/cricko-ipl.jsonl
+          python -m eval.reference.ingest \
+            data/snapshots/cricsheet/t20s_male_json.zip \
+            /tmp/cricko-t20i.jsonl
+          echo "---- line counts ----"
+          wc -l /tmp/cricko-ipl.jsonl /tmp/cricko-t20i.jsonl
+
+      # ---------- STEP 4: Load into Neon ----------
+      - name: Load into Neon
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python -m database.load_snapshot \
+            --ipl-jsonl /tmp/cricko-ipl.jsonl \
+            --t20i-jsonl /tmp/cricko-t20i.jsonl
+
+      # ---------- STEP 5: Verify row counts ----------
+      - name: Verify row counts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "
+          SELECT 'matches' AS table_name, COUNT(*) AS row_count FROM matches
+          UNION ALL SELECT 'innings', COUNT(*) FROM innings
+          UNION ALL SELECT 'deliveries', COUNT(*) FROM deliveries
+          UNION ALL SELECT 'players', COUNT(*) FROM players
+          UNION ALL SELECT 'teams', COUNT(*) FROM teams
+          UNION ALL SELECT 'competitions', COUNT(*) FROM competitions
+          UNION ALL SELECT 'player_match_map', COUNT(*) FROM player_match_map
+          ORDER BY table_name;"
+
+      # ---------- STEP 6: Refresh planner stats ----------
+      - name: ANALYZE
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "ANALYZE;"
