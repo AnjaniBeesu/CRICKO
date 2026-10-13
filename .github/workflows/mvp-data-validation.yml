@@ -30,11 +30,13 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install test dependency
-        run: python -m pip install --upgrade pip pytest
+      - name: Install test and database dependencies
+        run: |
+          python -m pip install --upgrade pip pytest
+          python -m pip install -r database/requirements.txt
 
       - name: Validate reference implementation
-        run: python -m pytest eval/reference -q
+        run: python -m pytest eval/reference database -q
 
       - name: Ingest pinned IPL snapshot
         run: |
