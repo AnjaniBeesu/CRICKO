@@ -1,6 +1,6 @@
 # CRICKO PostgreSQL data layer
 
-This is the first persistence slice for the scoped Cricsheet dataset. It adds a relational schema and a deterministic loader for the existing normalized JSONL plus the source-backed metadata registries. It does **not** provide a production API or claim that player identities have been manually reconciled.
+This is the first persistence slice for the scoped Cricsheet dataset. It adds a relational schema, a deterministic loader, and the first SQL-backed statistics query exposed through FastAPI. It does **not** claim that player identities have been manually reconciled or that the API is deployed publicly.
 
 ## Local setup
 
@@ -29,6 +29,26 @@ python -m database.load_snapshot \
 ```
 
 The loader is idempotent for the same snapshot: inserts use stable keys and update source-backed fields on conflict. It runs in a transaction; any missing team/player identity or broken foreign key aborts the transaction rather than silently inventing a mapping.
+
+
+## First deterministic statistic and API
+
+The first production-shaped query is a top-batters leaderboard, ranked by batter-attributed runs, then balls faced, then stable player ID. It returns runs, balls faced, matches, and strike rate. Strike rate is calculated as 100 × batter runs / balls faced. Wides are excluded from balls faced; no-balls count as faced according to the reference normalizer. The query uses SQL aggregates, not an LLM.
+
+Install the API dependencies and run it locally after loading the database:
+
+```bash
+python -m pip install -r api/requirements.txt
+export DATABASE_URL='postgresql://cricko:cricko_local_only@localhost:5432/cricko'
+uvicorn api.main:app --reload --port 8000
+```
+
+- `GET /healthz` checks database connectivity.
+- `GET /stats/top-batters?limit=10&min_balls=30` returns the leaderboard.
+- Add `&competition=Indian%20Premier%20League` to filter to the IPL.
+- The Next.js homepage calls the same-origin `/api/stats/top-batters` proxy. Set `CRICKO_API_URL` in the Next.js environment to the reachable FastAPI base URL (for example, `http://127.0.0.1:8000` for local development).
+
+The API requires `DATABASE_URL`; do not commit production database credentials. GitHub Actions uses a temporary PostgreSQL 17 service to exercise ingestion, persistence, integrity checks, the API, and the frontend build.
 
 ## Tables
 
