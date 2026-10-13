@@ -21,14 +21,9 @@ def _connect(database_url: str):
     return psycopg.connect(database_url, row_factory=dict_row)
 
 
-def top_batters(
-    database_url: str,
-    *,
-    limit: int = 10,
-    min_balls: int = 30,
-    competition: str | None = None,
-) -> list[dict[str, Any]]:
-    """Rank batters by runs, then balls faced, then stable player ID."""
+def top_batters(database_url: str, *, limit: int = 10, min_balls: int = 30,
+                competition: str | None = None) -> list[dict[str, Any]]:
+    """Rank batters by batter-attributed runs, then balls faced, then stable ID."""
     if not 1 <= limit <= 50:
         raise ValueError("limit must be between 1 and 50")
     if min_balls < 0:
@@ -56,13 +51,8 @@ def top_batters(
     return [dict(row) for row in rows]
 
 
-def top_bowlers(
-    database_url: str,
-    *,
-    limit: int = 10,
-    min_legal_balls: int = 60,
-    competition: str | None = None,
-) -> list[dict[str, Any]]:
+def top_bowlers(database_url: str, *, limit: int = 10, min_legal_balls: int = 60,
+                competition: str | None = None) -> list[dict[str, Any]]:
     """Rank bowlers by credited wickets; rates use bowler-charged runs/legal balls."""
     if not 1 <= limit <= 50:
         raise ValueError("limit must be between 1 and 50")
@@ -98,10 +88,10 @@ def top_bowlers(
 
 def phase_stats(database_url: str, *, phase: str) -> dict[str, Any]:
     """Aggregate innings output by standard T20 phase using one-based over numbers."""
-    phase_bounds = {"powerplay": (1, 6), "middle": (7, 15), "death": (16, 20)}
-    if phase not in phase_bounds:
+    bounds = {"powerplay": (1, 6), "middle": (7, 15), "death": (16, 20)}
+    if phase not in bounds:
         raise ValueError("phase must be powerplay, middle, or death")
-    first_over, last_over = phase_bounds[phase]
+    first_over, last_over = bounds[phase]
     sql = """
         SELECT %s::text AS phase,
             COALESCE(SUM(d.total_runs), 0)::integer AS runs,
@@ -121,13 +111,8 @@ def phase_stats(database_url: str, *, phase: str) -> dict[str, Any]:
     return row
 
 
-def head_to_head(
-    database_url: str,
-    *,
-    batter_id: str,
-    bowler_id: str,
-    competition: str | None = None,
-) -> dict[str, Any]:
+def head_to_head(database_url: str, *, batter_id: str, bowler_id: str,
+                 competition: str | None = None) -> dict[str, Any]:
     """Batter-versus-bowler output; dismissals count only wickets credited to that bowler."""
     key = competition_key(competition)
     sql = """
@@ -139,12 +124,16 @@ def head_to_head(
                 WHERE d.dismissed_player_id = d.batter_id AND d.bowler_credited_wicket
             )::integer AS dismissals,
             COUNT(DISTINCT d.match_id)::integer AS matches,
-            ARRAY_AGG(DISTINCT d.match_id ORDER BY d.match_id) FILTER (WHERE d.match_id IS NOT NULL) AS match_ids
+            ARRAY_AGG(DISTINCT d.match_id ORDER BY d.match_id)
+                FILTER (WHERE d.match_id IS NOT NULL) AS match_ids
         FROM players b
         CROSS JOIN players w
-        LEFT JOIN deliveries d ON d.batter_id = b.player_id AND d.bowler_id = w.player_id
-        LEFT JOIN matches m ON m.match_id = d.match_id
-            AND (%s::text IS NULL OR m.competition_id = %s)
+        LEFT JOIN (
+            SELECT d.*
+            FROM deliveries d
+            JOIN matches m ON m.match_id = d.match_id
+            WHERE (%s::text IS NULL OR m.competition_id = %s)
+        ) d ON d.batter_id = b.player_id AND d.bowler_id = w.player_id
         WHERE b.player_id = %s AND w.player_id = %s
         GROUP BY b.player_id, b.source_name, w.player_id, w.source_name
     """
