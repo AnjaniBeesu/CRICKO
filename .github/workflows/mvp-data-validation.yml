@@ -10,7 +10,7 @@ on:
       - ".github/workflows/mvp-data-validation.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate-mvp-data:
@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           lfs: true
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Install Git LFS
         run: git lfs install
@@ -48,6 +48,13 @@ jobs:
             data/snapshots/cricsheet/t20s_male_json.zip \
             /tmp/cricko-t20i-2022plus.jsonl
 
+      - name: Collect player, team, and match metadata
+        run: |
+          python -m eval.reference.collect_cricsheet_metadata \
+            --output-dir data/collected \
+            data/snapshots/cricsheet/ipl_json.zip \
+            data/snapshots/cricsheet/t20s_male_json.zip
+
       - name: Report normalized dataset sizes
         run: |
           python - <<'PY'
@@ -60,3 +67,15 @@ jobs:
               lines = sum(1 for _ in path.open(encoding="utf-8"))
               print(f"{path.name}: {lines:,} normalized deliveries")
           PY
+
+      - name: Commit generated metadata registries
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/collected/players-source.json data/collected/teams-source.json data/collected/matches-metadata.jsonl
+          if git diff --cached --quiet; then
+            echo "Collected metadata is unchanged."
+          else
+            git commit -m "data: refresh Cricsheet player and match registries"
+            git push
+          fi
