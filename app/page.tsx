@@ -17,6 +17,7 @@ const insights=[
 
 type Batter = { player_id: string; player: string; runs: number; balls_faced: number; matches: number; strike_rate: number | null };
 type Leaderboard = { scope: string; definition: string; count: number; results: Batter[] };
+type QueryAnswer = { status: string; answer: string; scope?: string };
 
 export default function Home(){
   const [query,setQuery]=useState("");
@@ -39,7 +40,10 @@ export default function Home(){
   },[]);
 
   const [asked,setAsked]=useState("");
-  const ask=(q=query)=>{if(!q.trim())return;setQuery(q);setAsked(q)};
+  const [answer,setAnswer]=useState<QueryAnswer|null>(null);
+  const [answerLoading,setAnswerLoading]=useState(false);
+  const [answerError,setAnswerError]=useState("");
+  const ask=async(q=query)=>{if(!q.trim()||answerLoading)return;setQuery(q);setAsked(q);setAnswer(null);setAnswerError("");setAnswerLoading(true);try{const response=await fetch("/api/query",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:q}),cache:"no-store"});const payload=await response.json();if(!response.ok)throw new Error(payload.detail||"Cricko could not process that question.");setAnswer(payload as QueryAnswer);}catch(error){setAnswerError(error instanceof Error?error.message:"Unable to reach the CRICKO API.");}finally{setAnswerLoading(false);}};
   return <main>
     <nav className="nav">
       <div className="brand"><span className="brand-mark">C</span><span>cricko</span></div>
@@ -63,8 +67,7 @@ export default function Home(){
       {asked && <div className="answer-card">
         <div className="answer-head"><span><Sparkles size={15}/> CRICKO ANALYSIS</span><span className="live-tag">EVIDENCE BACKED</span></div>
         <h2>{asked}</h2>
-        <p>Cricko would route this question through cricket-aware entity extraction, structured statistics and contextual retrieval. The production pipeline is ready to connect to your data/API keys.</p>
-        <div className="answer-grid"><div><b>Retrieval</b><span>Structured + semantic</span></div><div><b>Reasoning</b><span>Statistical + LLM</span></div><div><b>Evidence</b><span>Source-linked</span></div></div>
+        <p>{answerLoading?"Querying the CRICKO database…":answerError?answerError:answer?.answer||"No answer returned."}</p>{answer?.scope&&<p className="leaderboard-scope">Dataset: {answer.scope}</p>}</div>
       </div>}
     </section>
 
