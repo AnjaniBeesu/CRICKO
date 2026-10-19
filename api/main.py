@@ -68,3 +68,23 @@ def stats_top_batters(
         "count": len(rows),
         "results": rows,
     }
+
+
+@app.post("/query")
+def query_cricket(payload: dict[str, Any]) -> dict[str, Any]:
+    question = str(payload.get("question", "")).strip()
+    if not question:
+        raise HTTPException(status_code=422, detail="Enter a cricket question.")
+    q = question.casefold()
+    # Supported deterministic query family. Never fabricate an answer for unsupported asks.
+    if any(term in q for term in ("top batter", "most runs", "highest run", "leading run", "who scored the most")):
+        limit = int(payload.get("limit", 10))
+        try:
+            rows = top_batters(database_url(), limit=max(1, min(limit, 20)), min_balls=0)
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="Unable to query cricket statistics") from exc
+        if not rows:
+            return {"question": question, "status": "no_data", "answer": "No matching batting records were found in the loaded dataset.", "results": [], "scope": "Loaded Cricsheet snapshot"}
+        lines = [f"{i}. {row['player']} — {row['runs']} runs ({row['balls_faced']} balls, SR {row['strike_rate']})" for i, row in enumerate(rows, 1)]
+        return {"question": question, "status": "answered", "answer": "Top run-scorers in the loaded CRICKO dataset:\n" + "\n".join(lines), "results": rows, "scope": "Loaded Cricsheet snapshot", "method": "PostgreSQL aggregate; batter-attributed runs"}
+    return {"question": question, "status": "unsupported", "answer": "I can't answer that reliably yet. This CRICKO build currently supports top-run-scorer questions; comparisons, knockout filters, live scores, and broader cricket questions aren't wired up yet.", "results": [], "scope": "Loaded Cricsheet snapshot"}
